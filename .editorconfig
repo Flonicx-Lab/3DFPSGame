@@ -1,0 +1,63 @@
+root = true
+
+[Assets/02.Scripts/**.cs]
+indent_style = space
+indent_size = 4
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = when_multiline:warning
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = false:warning
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_style.interface_style.capitalization = pascal_case
+
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.applicable_accessibilities = private
+dotnet_naming_symbols.private_constants.required_modifiers = const
+dotnet_naming_rule.private_constants_pascal.symbols = private_constants
+dotnet_naming_rule.private_constants_pascal.style = pascal_case
+dotnet_naming_rule.private_constants_pascal.severity = warning
+
+dotnet_naming_symbols.non_public_fields.applicable_kinds = field
+dotnet_naming_symbols.non_public_fields.applicable_accessibilities = private, protected
+dotnet_naming_rule.non_public_fields_underscore.symbols = non_public_fields
+dotnet_naming_rule.non_public_fields_underscore.style = underscore_camel_case
+dotnet_naming_rule.non_public_fields_underscore.severity = warning
+
+dotnet_naming_symbols.public_fields.applicable_kinds = field
+dotnet_naming_symbols.public_fields.applicable_accessibilities = public, internal
+dotnet_naming_rule.public_fields_pascal.symbols = public_fields
+dotnet_naming_rule.public_fields_pascal.style = pascal_case
+dotnet_naming_rule.public_fields_pascal.severity = warning
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, enum, delegate
+dotnet_naming_rule.types_pascal.symbols = types
+dotnet_naming_rule.types_pascal.style = pascal_case
+dotnet_naming_rule.types_pascal.severity = warning
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_rule.interfaces_prefix.symbols = interfaces
+dotnet_naming_rule.interfaces_prefix.style = interface_style
+dotnet_naming_rule.interfaces_prefix.severity = warning
+
+dotnet_naming_symbols.methods_and_properties.applicable_kinds = method, property, event
+dotnet_naming_rule.methods_and_properties_pascal.symbols = methods_and_properties
+dotnet_naming_rule.methods_and_properties_pascal.style = pascal_case
+dotnet_naming_rule.methods_and_properties_pascal.severity = warning
+
+dotnet_naming_symbols.parameters_and_locals.applicable_kinds = parameter, local
+dotnet_naming_rule.parameters_and_locals_camel.symbols = parameters_and_locals
+dotnet_naming_rule.parameters_and_locals_camel.style = camel_case
+dotnet_naming_rule.parameters_and_locals_camel.severity = warning
+
+dotnet_diagnostic.IDE1006.severity = warning
+dotnet_diagnostic.IDE0055.severity = warning

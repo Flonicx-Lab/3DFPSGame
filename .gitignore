@@ -1,0 +1,115 @@
+# Unity generated folders
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+*.log
+
+# Blender backup files
+*.blend1
+*.blend1.meta
+
+# Large Unity captures
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Unity Asset Store tools
+# /[Aa]ssets/AssetStoreTools*
+
+# IDE generated files
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.DotSettings.user
+.idea/
+*.idea/
+.vscode/
+.vs/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity generated metadata and crash files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+mono_crash.*
+crashlytics-build.properties
+
+# Build outputs
+*.apk
+*.aab
+*.unitypackage
+*.unitypackage.meta
+*.app
+
+# Test Runner generated scenes
+InitTestScene*.unity*
+/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Addressables generated content
+/ServerData
+/[Aa]ssets/StreamingAssets/aa*
+/[Aa]ssets/AddressableAssetsData/link.xml*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
+
+# Visual Scripting generated content
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# Unity generated cache inside Assets
+/[Aa]ssets/[Ss]ceneDependencyCache*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local agent settings
+.AGENTS.md
+
+# Required project sources and collaboration settings
+!/[Aa]ssets/
+!/[Aa]ssets/**
+!/Packages/
+!/Packages/**
+!/ProjectSettings/
+!/ProjectSettings/**
+!/.editorconfig
+!/.gitattributes
+!/.github/
+!/.github/**
+!/.husky/
+!/.husky/commit-msg
+!/.husky/pre-commit
+!/.husky/task-runner.json
+!/Docs/
+!/Docs/CodeReviewGuide.md
+!/GEMINI.md
+!/dotnet-tools.json
+!/setup.bat

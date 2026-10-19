@@ -1,0 +1,26 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+if [ -f "$GIT_DIR/MERGE_HEAD" ] \
+   || [ -d "$GIT_DIR/rebase-merge" ] || [ -d "$GIT_DIR/rebase-apply" ] \
+   || [ -f "$GIT_DIR/CHERRY_PICK_HEAD" ] || [ -f "$GIT_DIR/REVERT_HEAD" ]; then
+    exit 0
+fi
+
+first_line=$(head -n 1 "$1")
+case "$first_line" in
+    "Merge "*|"Revert \""*|"fixup! "*|"squash! "*|"amend! "*) exit 0 ;;
+esac
+
+if ! head -n 1 "$1" | grep -qE '^(asset|design|build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.+\))?!?: .+'; then
+    printf '\n%s\n%s\n\n' \
+        "[Git Hook Error] 커밋 제목은 'type: 설명' 또는 'type(scope): 설명' 형식이어야 합니다." \
+        "허용 타입: asset, design, build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test"
+    exit 1
+fi
+
+body_lines=$(awk 'NR > 1 && $0 !~ /^[[:space:]]*$/ && $0 !~ /^#/ { count++ } END { print count + 0 }' "$1")
+if [ "$body_lines" -lt 1 ]; then
+    printf '\n%s\n\n' "[Git Hook Error] 커밋 본문은 빈 줄과 주석을 제외하고 최소 1줄 이상 작성해야 합니다."
+    exit 1
+fi

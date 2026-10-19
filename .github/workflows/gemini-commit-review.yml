@@ -1,0 +1,74 @@
+name: Gemini PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
+    paths:
+      - 'Assets/02.Scripts/**/*.cs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: gemini-pr-review-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Review C# PR Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create PR diff
+        id: create_diff
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --no-ext-diff --unified=80 "origin/${BASE_REF}...HEAD" -- ':(glob)Assets/02.Scripts/**/*.cs' > pr.diff
+          if [[ ! -s pr.diff ]]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Gemini review
+        if: ${{ steps.create_diff.outputs.has_changes == 'true' }}
+        id: gemini_review
+        uses: google-github-actions/run-gemini-cli@v0.1.22
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: 'true'
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: gemini-3.1-flash-lite
+          prompt: |
+            pr.diff를 먼저 읽고 Assets/02.Scripts의 C# 변경사항을 검토하세요.
+            GEMINI.md와 Docs/CodeReviewGuide.md의 기준을 적용하세요.
+            버그, 예외, Unity 생명주기, 성능, GC Alloc, 설계, 가독성을 검토하세요.
+            근거가 약한 추측과 과도한 리팩터링 제안은 피하세요.
+            파일을 수정하거나 커밋하지 말고 결과만 한국어로 작성하세요.
+
+      - name: Post review comment on PR
+        if: ${{ steps.create_diff.outputs.has_changes == 'true' && steps.gemini_review.outputs.summary != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_BODY: ${{ steps.gemini_review.outputs.summary }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "## Gemini PR Review
+
+          ${REVIEW_BODY}"
