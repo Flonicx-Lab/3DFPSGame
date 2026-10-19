@@ -1,23 +1,22 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-export PATH=$PATH:/c/Program\ Files/dotnet:'/C/Program Files/dotnet':/usr/local/share/dotnet
+## husky task runner examples -------------------
+## Note : for local installation use 'dotnet' prefix. e.g. 'dotnet husky'
 
-if ! command -v dotnet >/dev/null 2>&1; then
-    echo "[Warning] dotnet SDK를 찾을 수 없어 형식 검사를 건너뜁니다."
-    exit 0
-fi
+## run all tasks
+#husky run
 
-SLN_FILE=$(find . -maxdepth 1 -name '*.sln' -print -quit)
-if [ -z "$SLN_FILE" ]; then
-    echo "[Warning] .sln 파일을 찾을 수 없어 형식 검사를 건너뜁니다."
-    exit 0
-fi
+### run all tasks with group: 'group-name'
+#husky run --group group-name
 
-echo "Checking C# code formatting with dotnet format..."
-dotnet format "$SLN_FILE" --verify-no-changes --include Assets/02.Scripts/
-result=$?
-if [ "$result" -ne 0 ]; then
-    printf '\n%s\n\n' "[Git Hook Error] .editorconfig 코딩 규칙 위반이 발견되었습니다."
-    exit "$result"
-fi
+## run task with name: 'task-name'
+#husky run --name task-name
+
+## pass hook arguments to task
+#husky run --args "$1" "$2"
+
+## or put your custom commands -------------------
+#echo 'Husky.Net is awesome!'
+
+dotnet format 3DFPSGame.sln --verify-no-changes --severity warn --include Assets/02.Scripts/
