@@ -92,6 +92,7 @@ Thumbs.db
 
 # Local agent settings
 .AGENTS.md
+/AGENTS.md
 
 # Required project sources and collaboration settings
 !/[Aa]ssets/
