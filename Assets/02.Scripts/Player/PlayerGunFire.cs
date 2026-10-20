@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // 마우스 왼쪽 버튼을 누르면 바라보는 방향으로 총알을 발사하고 싶다.
@@ -8,23 +9,44 @@ public class PlayerGunFire : MonoBehaviour
     [SerializeField] private float _range = 100f;
     [SerializeField] private float _damage = 10f;
     [SerializeField] private float _fireInterval = 0.1f;
+    [SerializeField] private int _maxAmmo = 50;
+    [SerializeField] private float _reloadDuration = 1.5f;
+
     private float _fireTimer = 0f;
+    private int _currentAmmo;
+    private bool _isReloading = false;
+
+    private void Start()
+    {
+        _currentAmmo = _maxAmmo;
+    }
 
     private void Update()
     {
         // 0. 발사 타이머를 지난 시간만큼 줄인다.
         _fireTimer -= Time.deltaTime;
 
-        // 1. 마우스 왼쪽 버튼 입력 받기
-        if (Input.GetButton("Fire1") && _fireTimer <= 0f) // 0~2
+        // 1. 수동 재장전 입력 받기
+        if (Input.GetKeyDown(KeyCode.R) && !_isReloading && _currentAmmo < _maxAmmo)
         {
-            _fireTimer = _fireInterval;
-            Shoot();
+            StartCoroutine(ReloadRoutine());
+        }
+
+        // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
+        if (Input.GetButton("Fire1") && _fireTimer <= 0f)
+        {
+            if (!_isReloading && _currentAmmo > 0)
+            {
+                _fireTimer = _fireInterval;
+                Shoot();
+            }
         }
     }
 
     private void Shoot()
     {
+        _currentAmmo--;
+
         Transform cameraTransform = Camera.main.transform;
         // 2. 레이(광선)을 생성하고 발사될 위치와 진행 방향 설정
         var ray = new Ray(cameraTransform.position, cameraTransform.forward);
@@ -43,5 +65,13 @@ public class PlayerGunFire : MonoBehaviour
             effect.transform.forward = hitInfo.normal; // 수직 위치로 회전
             effect.Play();
         }
+    }
+
+    private IEnumerator ReloadRoutine()
+    {
+        _isReloading = true;
+        yield return new WaitForSeconds(_reloadDuration);
+        _currentAmmo = _maxAmmo;
+        _isReloading = false;
     }
 }
