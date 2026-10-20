@@ -27,23 +27,23 @@ public class PlayerMove : MonoBehaviour
         // 로컬 좌표계: 한 대상을 중심
         // 월드 좌표계: 세상을 중심
 
-        // 3. 땅에 서 있지 않을 때만 중력을 누적한다.
-        if (_characterController.isGrounded == false)
+
+        // 3. 땅에 있으면 y 벨로시티를 기본적으로 -2유지
+
+        var isGrounded = _characterController.isGrounded;
+
+        if (isGrounded && _yVelocity < 0f)
         {
-            _yVelocity += Gravity * Time.deltaTime;
-        }
-        else
-        {
-            //땅에 서있으면 중력 초기화
             _yVelocity = 0f;
         }
 
-
-        // 4. 만약 점프 키를 눌렀고 점프중이 아니라면 점프를 한다.
-        if (Input.GetButtonDown("Jump") && _characterController.isGrounded)
+        // 4. 땅에 있고 점프를 누르면 점프를 한다.
+        if (Input.GetButtonDown("Jump") && isGrounded)
         {
             _yVelocity = _jumpPower;
         }
+
+        _yVelocity += Gravity * Time.deltaTime;
 
 
         // 5. 속도를 구한다.
