@@ -4,7 +4,7 @@ using UnityEngine;
 public sealed class PlayerStamina : MonoBehaviour
 {
     [SerializeField, Min(1f)] private float _maxStamina = 100f;
-    [SerializeField, Min(0f)] private float _recoveryPerSecond = 15f;
+    [SerializeField, Min(0f)] private float _recoveryPerSecond = 20f;
 
     private float _currentStamina;
 

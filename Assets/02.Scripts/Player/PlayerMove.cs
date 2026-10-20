@@ -10,14 +10,16 @@ public class PlayerMove : MonoBehaviour
     private float _yVelocity = 0f; // 위아래 속도, 매 프레임마다 중력 가속도가 붙는다.
     private bool _runRequiresRelease = false;
 
+    [Header("스텟")]
     [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _runSpeed = 12f;
     [SerializeField] private float _jumpPower = 10f;
     [SerializeField, Min(0f)] private float _runStaminaPerSecond = 20f;
     [SerializeField, Min(0f)] private float _jumpStaminaCost = 10f;
 
-    private CharacterController _characterController;
-    private PlayerStamina _stamina;
+    [Header("컴포넌트")]
+    [SerializeField] private CharacterController _characterController;
+    [SerializeField] private PlayerStamina _stamina;
 
     private void Awake()
     {
@@ -59,7 +61,7 @@ public class PlayerMove : MonoBehaviour
         _yVelocity += Gravity * Time.deltaTime;
 
         // 5. 달리기상태
-        var runKeyPressed = Input.GetKey(KeyCode.LeftShift);
+        var runKeyPressed = Input.GetButton("Sprint");
 
         if (!runKeyPressed)
         {
@@ -67,13 +69,13 @@ public class PlayerMove : MonoBehaviour
         }
 
         var wantsToRun = runKeyPressed
-            && isGrounded
-            && !jumpedThisFrame
-            && direction.sqrMagnitude > 0f
-            && !_runRequiresRelease;
+                         && isGrounded
+                         && !jumpedThisFrame
+                         && direction.sqrMagnitude > 0f
+                         && !_runRequiresRelease;
 
         var isRunning = wantsToRun
-            && _stamina.TrySpend(_runStaminaPerSecond * Time.deltaTime);
+                        && _stamina.TrySpend(_runStaminaPerSecond * Time.deltaTime);
 
         if (wantsToRun && !isRunning)
         {
