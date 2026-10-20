@@ -1,19 +1,28 @@
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController), typeof(PlayerStamina))]
 public class PlayerMove : MonoBehaviour
 {
     private const float Gravity = -20f;
-    private byte _jumpCount = 0;
+    private const int MaxJumpCount = 2;
+
+    private int _jumpCount = 0;
     private float _yVelocity = 0f; // 위아래 속도, 매 프레임마다 중력 가속도가 붙는다.
+    private bool _runRequiresRelease = false;
 
     [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _runSpeed = 12f;
     [SerializeField] private float _jumpPower = 10f;
-    [SerializeField] private CharacterController _characterController;
+    [SerializeField, Min(0f)] private float _runStaminaPerSecond = 20f;
+    [SerializeField, Min(0f)] private float _jumpStaminaCost = 10f;
+
+    private CharacterController _characterController;
+    private PlayerStamina _stamina;
 
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
+        _stamina = GetComponent<PlayerStamina>();
     }
 
     private void Update()
@@ -26,12 +35,7 @@ public class PlayerMove : MonoBehaviour
         Vector3 direction = new Vector3(h, 0, v).normalized; // 정규화 -> 대각선 문제 제거
         direction = transform.TransformDirection(direction);
 
-        // 로컬 좌표계: 한 대상을 중심
-        // 월드 좌표계: 세상을 중심
-
-
-        // 3. 땅에 있으면 y 벨로시티를 기본적으로 -2유지
-
+        // 3. 땅에 붙어있을 때
         var isGrounded = _characterController.isGrounded;
 
         if (isGrounded && _yVelocity < 0f)
@@ -40,25 +44,54 @@ public class PlayerMove : MonoBehaviour
             _jumpCount = 0;
         }
 
-        // 4. 땅에 있고 점프를 누르면 점프를 한다.
-        if (Input.GetButtonDown("Jump") && _jumpCount < 2)
+        // 4. 점프상태
+        var jumpedThisFrame = false;
+
+        if (Input.GetButtonDown("Jump")
+            && _jumpCount < MaxJumpCount
+            && _stamina.TrySpend(_jumpStaminaCost))
         {
             _yVelocity = _jumpPower;
             _jumpCount++;
+            jumpedThisFrame = true;
         }
 
         _yVelocity += Gravity * Time.deltaTime;
 
-        // 현재 속력
-        var currentSpeed = Input.GetKey(KeyCode.LeftShift) && isGrounded ? _runSpeed : _moveSpeed;
+        // 5. 달리기상태
+        var runKeyPressed = Input.GetKey(KeyCode.LeftShift);
 
-        // 5. 속도를 구한다.
+        if (!runKeyPressed)
+        {
+            _runRequiresRelease = false;
+        }
+
+        var wantsToRun = runKeyPressed
+            && isGrounded
+            && !jumpedThisFrame
+            && direction.sqrMagnitude > 0f
+            && !_runRequiresRelease;
+
+        var isRunning = wantsToRun
+            && _stamina.TrySpend(_runStaminaPerSecond * Time.deltaTime);
+
+        if (wantsToRun && !isRunning)
+        {
+            _runRequiresRelease = true;
+        }
+
+        if (!isRunning && isGrounded && !jumpedThisFrame)
+        {
+            _stamina.Recover(Time.deltaTime);
+        }
+
+        var currentSpeed = isRunning ? _runSpeed : _moveSpeed;
+
+        // 6. 최종 속도를 구한다.
         Vector3 velocity = direction * currentSpeed;
         velocity.y = _yVelocity;
 
-        // 6. 방향과 속력에 따라 이동한다.
-        // transform.position += direction * _moveSpeed * Time.deltaTime;
-
+        // 7. 방향과 속력에 따라 이동한다.
         _characterController.Move(velocity * Time.deltaTime);
     }
 }
