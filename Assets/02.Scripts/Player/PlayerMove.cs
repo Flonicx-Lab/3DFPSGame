@@ -3,9 +3,11 @@ using UnityEngine;
 public class PlayerMove : MonoBehaviour
 {
     private const float Gravity = -20f;
+    private byte _jumpCount = 0;
     private float _yVelocity = 0f; // 위아래 속도, 매 프레임마다 중력 가속도가 붙는다.
 
     [SerializeField] private float _moveSpeed = 7f;
+    [SerializeField] private float _runSpeed = 12f;
     [SerializeField] private float _jumpPower = 10f;
     [SerializeField] private CharacterController _characterController;
 
@@ -35,19 +37,23 @@ public class PlayerMove : MonoBehaviour
         if (isGrounded && _yVelocity < 0f)
         {
             _yVelocity = 0f;
+            _jumpCount = 0;
         }
 
         // 4. 땅에 있고 점프를 누르면 점프를 한다.
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (Input.GetButtonDown("Jump") && _jumpCount < 2)
         {
             _yVelocity = _jumpPower;
+            _jumpCount++;
         }
 
         _yVelocity += Gravity * Time.deltaTime;
 
+        // 현재 속력
+        var currentSpeed = Input.GetKey(KeyCode.LeftShift) && isGrounded ? _runSpeed : _moveSpeed;
 
         // 5. 속도를 구한다.
-        Vector3 velocity = direction * _moveSpeed;
+        Vector3 velocity = direction * currentSpeed;
         velocity.y = _yVelocity;
 
         // 6. 방향과 속력에 따라 이동한다.
