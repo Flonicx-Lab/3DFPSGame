@@ -3,7 +3,7 @@ using Debug = UnityEngine.Debug;
 
 public static class GameLogger
 {
-    [Conditional("ENABLE_LOG")]
+    [Conditional("ENABLE_LOG1")]
     public static void Log(object message)
     {
         Debug.Log(message);
