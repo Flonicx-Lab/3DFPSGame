@@ -18,6 +18,9 @@ csharp_indent_case_contents_when_block = true
 # 제어문은 한 줄이어도 중괄호를 사용한다.
 csharp_prefer_braces = true:warning
 
+# Rider 저장 시 여러 특성을 하나의 대괄호 안에 합친다.
+resharper_csharp_force_attribute_style = join
+
 #### 코드 스타일 ####
 
 # 우변에서 형식이 명확할 때만 var를 사용한다.
