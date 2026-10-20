@@ -28,9 +28,14 @@ public class PlayerMove : MonoBehaviour
         // 월드 좌표계: 세상을 중심
 
         // 3. 땅에 서 있지 않을 때만 중력을 누적한다.
-        if (!_characterController.isGrounded)
+        if (_characterController.isGrounded == false)
         {
             _yVelocity += Gravity * Time.deltaTime;
+        }
+        else
+        {
+            //땅에 서있으면 중력 초기화
+            _yVelocity = 0f;
         }
 
 
