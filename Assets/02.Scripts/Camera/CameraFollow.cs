@@ -7,7 +7,9 @@ public class CameraFollow : MonoBehaviour
     private void Awake()
     {
         if (_target == null)
+        {
             Debug.LogWarning("[CameraFollow] 카메라 타겟이 없어요", this);
+        }
     }
 
     // 카메라는 캐릭터가 움직인 후로 업데이트를 고정
