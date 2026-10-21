@@ -32,6 +32,7 @@ public class PlayerGunFire : MonoBehaviour
         // 1. 수동 재장전 입력 받기
         if (Input.GetButtonDown("Reload") && !_isReloading && _currentAmmo < _maxAmmo)
         {
+            Debug.Log("재장전 시작!");
             StartCoroutine(ReloadRoutine());
         }
 
@@ -74,5 +75,6 @@ public class PlayerGunFire : MonoBehaviour
         yield return new WaitForSeconds(_reloadDuration); // reloadDuration 기간동안 쉰다. yield return
         _currentAmmo = _maxAmmo;
         _isReloading = false;
+        Debug.Log("재장전 완료!");
     }
 }
