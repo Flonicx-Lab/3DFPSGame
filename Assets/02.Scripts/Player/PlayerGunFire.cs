@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Lean.Pool;
 using UnityEngine;
@@ -17,7 +18,7 @@ public class PlayerGunFire : MonoBehaviour
 
     private float _fireTimer = 0f;
     private int _currentAmmo;
-    private Coroutine _reloadRoutine;
+    private Awaitable _reloadAwaitable;
 
     private void Start()
     {
@@ -30,9 +31,9 @@ public class PlayerGunFire : MonoBehaviour
         _fireTimer -= Time.deltaTime;
 
         // 1. 수동 재장전 입력 받기
-        if (Input.GetButtonDown("Reload") && _currentAmmo < _maxAmmo && _reloadRoutine == null)
+        if (Input.GetButtonDown("Reload") && _currentAmmo < _maxAmmo)
         {
-            _reloadRoutine = StartCoroutine(ReloadRoutine());
+            ReloadAsync();
         }
 
         // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
@@ -42,11 +43,12 @@ public class PlayerGunFire : MonoBehaviour
             _fireTimer = _fireInterval;
             Shoot();
 
-            if (_reloadRoutine != null)
+            if (_reloadAwaitable != null)
             {
-                StopCoroutine(_reloadRoutine);
+                _reloadAwaitable.Cancel();
+                _reloadAwaitable = null;
+
                 Debug.Log("재장전 취소!");
-                _reloadRoutine = null;
             }
         }
     }
@@ -72,14 +74,25 @@ public class PlayerGunFire : MonoBehaviour
         }
     }
 
-    private IEnumerator ReloadRoutine()
+    private async Awaitable ReloadAsync()
     {
         Debug.Log("재장전 시작!");
 
-        yield return new WaitForSeconds(_reloadDuration); // reloadDuration 기간동안 쉰다. yield return
-        _currentAmmo = _maxAmmo;
+        try
+        {
+            _reloadAwaitable = Awaitable.WaitForSecondsAsync(_reloadDuration); // reloadDuration 기간동안 쉰다. yield return
+            await _reloadAwaitable;
 
-        Debug.Log("재장전 완료!");
-        _reloadRoutine = null;
+            _currentAmmo = _maxAmmo;
+            Debug.Log("재장전 완료!");
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancel()이 호출되면 이곳으로 즉시 탈출하여 리로드 차단
+        }
+        finally
+        {
+            _reloadAwaitable = null;
+        }
     }
 }
