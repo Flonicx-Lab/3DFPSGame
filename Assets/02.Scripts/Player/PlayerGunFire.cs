@@ -17,7 +17,7 @@ public class PlayerGunFire : MonoBehaviour
 
     private float _fireTimer = 0f;
     private int _currentAmmo;
-    private bool _isReloading = false;
+    private Coroutine _reloadRoutine;
 
     private void Start()
     {
@@ -30,20 +30,23 @@ public class PlayerGunFire : MonoBehaviour
         _fireTimer -= Time.deltaTime;
 
         // 1. 수동 재장전 입력 받기
-        if (Input.GetButtonDown("Reload") && !_isReloading && _currentAmmo < _maxAmmo)
+        if (Input.GetButtonDown("Reload") && _currentAmmo < _maxAmmo && _reloadRoutine == null)
         {
-            Debug.Log("재장전 시작!");
-            StartCoroutine(ReloadRoutine());
+            _reloadRoutine = StartCoroutine(ReloadRoutine());
         }
 
         // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
-        if (Input.GetButton("Fire1") && _fireTimer <= 0f)
+        if (Input.GetButton("Fire1") && _fireTimer <= 0f && _currentAmmo > 0)
         {
-            if (!_isReloading && _currentAmmo > 0)
+            _currentAmmo--;
+            _fireTimer = _fireInterval;
+            Shoot();
+
+            if (_reloadRoutine != null)
             {
-                _currentAmmo--;
-                _fireTimer = _fireInterval;
-                Shoot();
+                StopCoroutine(_reloadRoutine);
+                Debug.Log("재장전 취소!");
+                _reloadRoutine = null;
             }
         }
     }
@@ -71,10 +74,12 @@ public class PlayerGunFire : MonoBehaviour
 
     private IEnumerator ReloadRoutine()
     {
-        _isReloading = true;
+        Debug.Log("재장전 시작!");
+
         yield return new WaitForSeconds(_reloadDuration); // reloadDuration 기간동안 쉰다. yield return
         _currentAmmo = _maxAmmo;
-        _isReloading = false;
+
         Debug.Log("재장전 완료!");
+        _reloadRoutine = null;
     }
 }
