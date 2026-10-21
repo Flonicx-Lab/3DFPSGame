@@ -6,8 +6,10 @@ public class PlayerBombFire : MonoBehaviour
     [SerializeField] private Bomb _bombPrefab;
     [SerializeField] private float _throwPower = 15f;
     [SerializeField] private int _maxBomb = 10;
+    [SerializeField] private float _maxChargingTime = 1.5f;
 
     private int _currentBomb;
+    private float _currentChargingTime;
 
     private void Awake()
     {
@@ -19,7 +21,13 @@ public class PlayerBombFire : MonoBehaviour
         // 1. 마우스 오른쪽 버튼 입력 받기
         if (Input.GetButtonDown("Fire2") && _currentBomb > 0)
         {
+            Charging();
+        }
+
+        if (Input.GetButtonUp("Fire2"))
+        {
             Shoot();
+            _currentChargingTime = 0;
         }
     }
 
@@ -32,5 +40,15 @@ public class PlayerBombFire : MonoBehaviour
         // 3. 생성된 수류탄을 시선 방향으로 던지기
         Rigidbody rigidbody = bomb.GetComponent<Rigidbody>();
         rigidbody.AddForce(Camera.main.transform.forward * _throwPower, ForceMode.Impulse);
+    }
+
+    private void Charging()
+    {
+        _currentChargingTime += Time.deltaTime;
+
+        if (_currentChargingTime >= _maxChargingTime)
+        {
+            _currentChargingTime = _maxChargingTime;
+        }
     }
 }
