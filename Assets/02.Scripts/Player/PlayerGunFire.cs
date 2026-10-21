@@ -1,9 +1,12 @@
 using System.Collections;
+using Lean.Pool;
 using UnityEngine;
 
 // 마우스 왼쪽 버튼을 누르면 바라보는 방향으로 총알을 발사하고 싶다.
 public class PlayerGunFire : MonoBehaviour
 {
+    private const float HitEffectReturnDelay = 1.0f;
+
     [Header("스텟")]
     [SerializeField] private ParticleSystem _hitEffectPrefab;
     [SerializeField] private float _range = 100f;
@@ -58,12 +61,10 @@ public class PlayerGunFire : MonoBehaviour
         var isHit = Physics.Raycast(ray, out hitInfo, _range);
         if (isHit)
         {
-            //Debug.Log($"Hit {hitInfo.collider.name}이 총알을 맞았다. 데미지 : {_damage}");
-
-            ParticleSystem effect = Instantiate(_hitEffectPrefab);
-            effect.transform.position = hitInfo.point; //맞은 자리
-            effect.transform.forward = hitInfo.normal; // 수직 위치로 회전
+            // 5. 오브젝트 풀을 통해 피격 이펙트 생성 및 지연 반환
+            ParticleSystem effect = LeanPool.Spawn(_hitEffectPrefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
             effect.Play();
+            LeanPool.Despawn(effect.gameObject, HitEffectReturnDelay);
         }
     }
 

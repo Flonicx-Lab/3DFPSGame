@@ -1,3 +1,4 @@
+using Lean.Pool;
 using UnityEngine;
 
 public class PlayerBombFire : MonoBehaviour
@@ -24,22 +25,27 @@ public class PlayerBombFire : MonoBehaviour
             Charging();
         }
 
-        if (Input.GetButtonUp("Fire2"))
+        if (Input.GetButtonUp("Fire2") && _currentBomb > 0)
         {
             Shoot();
-            _currentChargingTime = 0;
+            _currentChargingTime = 0f;
         }
     }
 
     private void Shoot()
     {
-        // 2. 발사 위치에서 수류탄 생성하기
-        Bomb bomb = Instantiate(_bombPrefab, _firePoint.position, Quaternion.identity);
+        // 2. 오브젝트 풀을 통해 발사 위치에서 수류탄 대여
+        Bomb bomb = LeanPool.Spawn(_bombPrefab, _firePoint.position, Quaternion.identity);
         _currentBomb--;
 
-        // 3. 생성된 수류탄을 시선 방향으로 던지기
-        Rigidbody rigidbody = bomb.GetComponent<Rigidbody>();
-        rigidbody.AddForce(Camera.main.transform.forward * _throwPower, ForceMode.Impulse);
+        // 3. 재사용 시 물리 속도 초기화 후 시선 방향으로 투척
+        Rigidbody rb = bomb.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.AddForce(Camera.main.transform.forward * _throwPower, ForceMode.Impulse);
+        }
     }
 
     private void Charging()
