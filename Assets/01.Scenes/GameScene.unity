@@ -1737,6 +1737,7 @@ GameObject:
   - component: {fileID: 2074075405}
   - component: {fileID: 2074075406}
   - component: {fileID: 2074075407}
+  - component: {fileID: 2074075408}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -1954,6 +1955,20 @@ MonoBehaviour:
   _firePoint: {fileID: 1429070183}
   _bombPrefab: {fileID: 1797900830636296489, guid: da152192cf51c7645b8d87c678f7f098, type: 3}
   _throwPower: 15
+  _maxBomb: 10
+  _maxChargingTime: 1.5
+--- !u!114 &2074075408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2074075396}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7845ab4a3fac84448aa9a926cf0880f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoroutineTest
 --- !u!1001 &6793487564057532815
 PrefabInstance:
   m_ObjectHideFlags: 0

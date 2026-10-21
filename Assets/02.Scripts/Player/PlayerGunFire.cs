@@ -30,7 +30,7 @@ public class PlayerGunFire : MonoBehaviour
         _fireTimer -= Time.deltaTime;
 
         // 1. 수동 재장전 입력 받기
-        if (Input.GetKeyDown(KeyCode.R) && !_isReloading && _currentAmmo < _maxAmmo)
+        if (Input.GetButtonDown("Reload") && !_isReloading && _currentAmmo < _maxAmmo)
         {
             StartCoroutine(ReloadRoutine());
         }
@@ -40,6 +40,7 @@ public class PlayerGunFire : MonoBehaviour
         {
             if (!_isReloading && _currentAmmo > 0)
             {
+                _currentAmmo--;
                 _fireTimer = _fireInterval;
                 Shoot();
             }
@@ -48,8 +49,6 @@ public class PlayerGunFire : MonoBehaviour
 
     private void Shoot()
     {
-        _currentAmmo--;
-
         Transform cameraTransform = Camera.main.transform;
         // 2. 레이(광선)을 생성하고 발사될 위치와 진행 방향 설정
         var ray = new Ray(cameraTransform.position, cameraTransform.forward);
@@ -62,7 +61,8 @@ public class PlayerGunFire : MonoBehaviour
         if (isHit)
         {
             // 5. 오브젝트 풀을 통해 피격 이펙트 생성 및 지연 반환
-            ParticleSystem effect = LeanPool.Spawn(_hitEffectPrefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+            ParticleSystem effect =
+                LeanPool.Spawn(_hitEffectPrefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
             effect.Play();
             LeanPool.Despawn(effect.gameObject, HitEffectReturnDelay);
         }
@@ -71,7 +71,7 @@ public class PlayerGunFire : MonoBehaviour
     private IEnumerator ReloadRoutine()
     {
         _isReloading = true;
-        yield return new WaitForSeconds(_reloadDuration);
+        yield return new WaitForSeconds(_reloadDuration); // reloadDuration 기간동안 쉰다. yield return
         _currentAmmo = _maxAmmo;
         _isReloading = false;
     }
