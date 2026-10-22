@@ -71,6 +71,12 @@ public class PlayerGunFire : MonoBehaviour
                 LeanPool.Spawn(_hitEffectPrefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
             effect.Play();
             LeanPool.Despawn(effect.gameObject, HitEffectReturnDelay);
+
+            // 맞은 대상이 좀비라면 TakeDamage
+            if (hitInfo.collider.TryGetComponent(out Zombie zombie))
+            {
+                zombie.TakeDamage(_damage);
+            }
         }
     }
 
