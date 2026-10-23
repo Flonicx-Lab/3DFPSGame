@@ -7,6 +7,8 @@ public class Bomb : MonoBehaviour
     private const float ExplosionEffectReturnDelay = 1.5f;
 
     [SerializeField] private ParticleSystem _explosionEffectPrefab;
+    [SerializeField] private float _explosionRange = 4.5f;
+    [SerializeField] private float _explosionDamage = 100f;
     private Rigidbody _rigidbody;
 
     private void Awake()
@@ -36,5 +38,16 @@ public class Bomb : MonoBehaviour
 
         // 2. 폭탄 본체 풀 반환
         LeanPool.Despawn(gameObject);
+    }
+
+    private void ApplyAreaDamage()
+    {
+        Collider[] colliders =
+            Physics.OverlapSphere(transform.position, _explosionRange, LayerMask.GetMask("Drum", "Zombie"));
+
+        foreach (Collider col in colliders)
+        {
+            col.GetComponent<IDamagable>().TakeDamage(_explosionDamage);
+        }
     }
 }

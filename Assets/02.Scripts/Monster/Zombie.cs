@@ -18,7 +18,7 @@ public enum ZombieState
     Die // 사망 : 쓰러지고 잠시 뒤 사라진다.
 }
 
-public class Zombie : MonoBehaviour
+public class Zombie : MonoBehaviour, IDamagable
 {
     [Header("스텟")]
     [SerializeField] private float _detectDistance = 8f; // 플레이어를 발견하는 탐지거리
@@ -45,8 +45,8 @@ public class Zombie : MonoBehaviour
         _controller = GetComponent<CharacterController>();
         _startPosition = transform.position;
 
-        _patrolPointA = _startPosition + (transform.forward * _patrolDistance);
-        _patrolPointB = _startPosition - (transform.forward * _patrolDistance);
+        _patrolPointA = _startPosition + transform.forward * _patrolDistance;
+        _patrolPointB = _startPosition - transform.forward * _patrolDistance;
         _currentPatrolTarget = _patrolPointA;
     }
 
@@ -144,7 +144,7 @@ public class Zombie : MonoBehaviour
         // 2. 현재 순찰 목표 지점 근처에 도착하면 반대편 지점으로 목표 전환
         if (Vector3.Distance(transform.position, _currentPatrolTarget) < 0.2f)
         {
-            _currentPatrolTarget = (_currentPatrolTarget == _patrolPointA) ? _patrolPointB : _patrolPointA;
+            _currentPatrolTarget = _currentPatrolTarget == _patrolPointA ? _patrolPointB : _patrolPointA;
         }
 
         // 3. 목표 지점을 향해 이동
