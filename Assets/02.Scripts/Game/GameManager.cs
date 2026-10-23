@@ -18,6 +18,9 @@ public class GameManager : MonoBehaviour
     public GameState State => _state;
 
     [SerializeField] private TextMeshProUGUI _stateText;
+    private const string ReadyText = "준비";
+    private const string PlayText = "시작!";
+    private const string GameOverText = "게임오버";
 
     private void Awake()
     {
@@ -38,9 +41,9 @@ public class GameManager : MonoBehaviour
     private IEnumerator StartSequence_Coroutine()
     {
         _stateText.gameObject.SetActive(true);
-        _stateText.text = "준비";
+        _stateText.text = ReadyText;
         yield return new WaitForSeconds(1.5f);
-        _stateText.text = "시작!";
+        _stateText.text = PlayText;
         yield return new WaitForSeconds(0.5f);
         _stateText.gameObject.SetActive(false);
 
@@ -52,7 +55,7 @@ public class GameManager : MonoBehaviour
     {
         _state = GameState.GameOver;
         _stateText.gameObject.SetActive(true);
-        _stateText.text = "게임오버";
+        _stateText.text = GameOverText;
         _stateText.color = Color.red;
     }
 }
