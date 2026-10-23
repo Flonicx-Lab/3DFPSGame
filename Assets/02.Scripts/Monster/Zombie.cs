@@ -29,6 +29,9 @@ public class Zombie : MonoBehaviour, IDamagable
     [SerializeField] private float _patrolDistance = 3f; // 순찰 반경 거리
     [SerializeField] private float _health = 30f;
 
+    [Header("이펙트")]
+    [SerializeField] private GameObject _bloodSprayPrefab;
+    [SerializeField] private float _bloodSprayTime = 3f;
     private float _attackTimer = 0f;
     private GameObject _player;
     private CharacterController _controller;
@@ -77,14 +80,21 @@ public class Zombie : MonoBehaviour, IDamagable
     }
 
     // 데미지 받는다.
-    public void TakeDamage(float damage)
+    public void TakeDamage(DamageInfo damageInfo)
     {
         if (_state == ZombieState.Die)
         {
             return;
         }
 
-        _health -= damage;
+        _health -= damageInfo.Value;
+
+        GameObject bloodSpray = Instantiate(_bloodSprayPrefab, transform);
+        bloodSpray.transform.position = damageInfo.HitPoint;
+        bloodSpray.transform.forward = damageInfo.HitNormal;
+
+        Destroy(bloodSpray, _bloodSprayTime);
+
 
         StopAllCoroutines();
 

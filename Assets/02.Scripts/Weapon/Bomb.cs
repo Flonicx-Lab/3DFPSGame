@@ -47,7 +47,13 @@ public class Bomb : MonoBehaviour
 
         foreach (Collider col in colliders)
         {
-            col.GetComponent<IDamagable>().TakeDamage(_explosionDamage);
+            DamageInfo damageInfo = new()
+            {
+                Value = _explosionDamage,
+                HitPoint = col.ClosestPoint(transform.position),
+                HitNormal = (transform.position - col.ClosestPoint(transform.position)).normalized
+            };
+            col.GetComponent<IDamagable>().TakeDamage(damageInfo);
         }
     }
 }

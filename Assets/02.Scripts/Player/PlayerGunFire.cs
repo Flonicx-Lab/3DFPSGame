@@ -72,8 +72,13 @@ public class PlayerGunFire : MonoBehaviour
             effect.Play();
             LeanPool.Despawn(effect.gameObject, HitEffectReturnDelay);
 
+            var damageInfo = new DamageInfo();
+            damageInfo.Value = _damage;
+            damageInfo.HitPoint = hitInfo.point;
+            damageInfo.HitNormal = hitInfo.normal;
+
             // 맞은 대상이 좀비라면 TakeDamage
-            hitInfo.collider.GetComponent<IDamagable>()?.TakeDamage(_damage);
+            hitInfo.collider.GetComponent<IDamagable>()?.TakeDamage(damageInfo);
         }
     }
 

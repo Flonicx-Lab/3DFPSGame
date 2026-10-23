@@ -2251,6 +2251,7 @@ MonoBehaviour:
   _moveSpeed: 5
   _patrolDistance: 3
   _health: 30
+  _bloodSprayPrefab: {fileID: 1000013355911406, guid: d32aa916f50cac94db11e6f19821a58f, type: 3}
 --- !u!1 &2074075396
 GameObject:
   m_ObjectHideFlags: 0

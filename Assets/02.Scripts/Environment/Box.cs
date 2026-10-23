@@ -4,8 +4,8 @@ public class Box : MonoBehaviour, IDamagable
 {
     [SerializeField] private float _health = 30f;
 
-    public void TakeDamage(float damage)
+    public void TakeDamage(DamageInfo damageInfo)
     {
-        _health -= damage;
+        _health -= damageInfo.Value;
     }
 }
