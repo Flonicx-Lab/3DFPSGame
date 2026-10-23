@@ -27,7 +27,11 @@ public class Zombie : MonoBehaviour, IDamagable
     [SerializeField] private float _attackInterval = 1.2f; // 공격 간격
     [SerializeField] private float _moveSpeed = 5f;
     [SerializeField] private float _patrolDistance = 3f; // 순찰 반경 거리
-    [SerializeField] private float _health = 30f;
+    [SerializeField] private float _maxHealth = 30f;
+
+    private float _health;
+    public float MaxHealth => _maxHealth;
+    public float Health => _health;
 
     [Header("이펙트")]
     [SerializeField] private GameObject _bloodSprayPrefab;
@@ -44,6 +48,7 @@ public class Zombie : MonoBehaviour, IDamagable
 
     private void Start()
     {
+        _health = _maxHealth;
         _player = GameObject.FindGameObjectWithTag("Player");
         _controller = GetComponent<CharacterController>();
         _startPosition = transform.position;
