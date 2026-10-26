@@ -42,7 +42,8 @@ public class PlayerGunFire : MonoBehaviour
         }
 
         // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
-        if (Input.GetButton("Fire1") && _fireTimer <= 0f && _currentAmmo > 0)
+        var isMouseVisible = Cursor.visible;
+        if (!isMouseVisible && Input.GetButton("Fire1") && _fireTimer <= 0f && _currentAmmo > 0)
         {
             _currentAmmo--;
             _fireTimer = _fireInterval;
