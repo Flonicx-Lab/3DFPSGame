@@ -3169,8 +3169,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_Minimap
   _minimapCamera: {fileID: 983609734}
-  _plusButton: {fileID: 1634255920}
-  _minusButton: {fileID: 2087911414}
+  _zoomInButton: {fileID: 1634255920}
+  _zoomOutButton: {fileID: 2087911414}
 --- !u!1 &1544226500
 GameObject:
   m_ObjectHideFlags: 0

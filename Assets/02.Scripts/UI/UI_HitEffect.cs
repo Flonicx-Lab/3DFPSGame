@@ -1,5 +1,4 @@
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,14 +7,31 @@ public class UI_HitEffect : MonoBehaviour
 {
     [SerializeField] private float _flashTime = 0.2f;
     [SerializeField] private float _fadeTime = 1f;
+    [SerializeField] private float _fadeStartAlpha = 0.6f;
 
-    private Color _color;
     private Image _image;
+    private PlayerHealth _playerHealth;
 
     private void Awake()
     {
         _image = GetComponent<Image>();
         _image.enabled = false;
+    }
+
+    private void Start()
+    {
+        _playerHealth = FindAnyObjectByType<PlayerHealth>();
+        _playerHealth.OnDamaged += OnPlayerDamaged;
+    }
+
+    private void OnDestroy()
+    {
+        _playerHealth.OnDamaged -= OnPlayerDamaged;
+    }
+
+    private void OnPlayerDamaged()
+    {
+        Fade(_fadeStartAlpha);
     }
 
     public void Flash(float alpha)

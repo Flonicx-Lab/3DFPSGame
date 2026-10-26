@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -47,9 +48,15 @@ public class Zombie : MonoBehaviour, IDamagable
 
     private ZombieState _state = ZombieState.Patrol;
 
-    private void Start()
+    public event Action OnDamaged;
+
+    private void Awake()
     {
         _health = _maxHealth;
+    }
+
+    private void Start()
+    {
         _player = GameObject.FindGameObjectWithTag("Player");
         _controller = GetComponent<CharacterController>();
         _startPosition = transform.position;
@@ -99,6 +106,8 @@ public class Zombie : MonoBehaviour, IDamagable
         }
 
         _health -= damageInfo.Value;
+
+        OnDamaged?.Invoke();
 
         GameObject bloodSpray = Instantiate(_bloodSprayPrefab, transform);
         bloodSpray.transform.position = damageInfo.HitPoint;
