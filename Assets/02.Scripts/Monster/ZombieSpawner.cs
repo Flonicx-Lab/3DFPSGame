@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Lean.Pool;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -7,12 +8,11 @@ using Random = UnityEngine.Random;
 public class ZombieSpawner : MonoBehaviour
 {
     [Header("스폰 대상")]
-    [SerializeField] private Zombie _zombiePrefab;
+    [SerializeField] private LeanGameObjectPool _zombiePool; // 동시에 존재하는 좀비의 최대 수는 풀 용량이 정한다.
     [SerializeField] private Transform[] _spawnPoints;
 
     [Header("스폰 사이클")]
     [SerializeField] private float _spawnInterval = 3f; // 스폰 간격
-    [SerializeField] private int _maxAliveCount = 10; // 동시에 살아 있을 수 있는 최대 수
     [SerializeField] private float _minDistanceFromPlayer = 15f; // 플레이어와의 최소 거리
 
     private readonly List<Zombie> _aliveZombies = new();
@@ -23,11 +23,18 @@ public class ZombieSpawner : MonoBehaviour
     public event Action OnAliveCountChanged;
 
     public int AliveCount => _aliveZombies.Count;
-    public int MaxAliveCount => _maxAliveCount;
+    public int MaxAliveCount => _zombiePool.Capacity;
 
     private void Start()
     {
         _player = GameObject.FindGameObjectWithTag("Player").transform;
+
+        // 용량 0은 상한 없음이므로 최대 수가 사라진다.
+        if (_zombiePool.Capacity <= 0)
+        {
+            Debug.LogError("좀비 풀의 Capacity가 0 이하입니다. 최대 수를 정하려면 1 이상이어야 합니다.", _zombiePool);
+            enabled = false;
+        }
     }
 
     private void Update()
@@ -45,11 +52,6 @@ public class ZombieSpawner : MonoBehaviour
 
         _spawnTimer = 0f;
 
-        if (_aliveZombies.Count >= _maxAliveCount)
-        {
-            return;
-        }
-
         // 모든 지점이 플레이어와 가까우면 이번 사이클은 건너뛴다.
         Transform spawnPoint = PickSpawnPoint();
         if (spawnPoint == null)
@@ -60,7 +62,14 @@ public class ZombieSpawner : MonoBehaviour
         Vector3 toPlayer = _player.position - spawnPoint.position;
         toPlayer.y = 0f;
 
-        Zombie zombie = Instantiate(_zombiePrefab, spawnPoint.position, Quaternion.LookRotation(toPlayer));
+        // 풀에 빈 자리가 없으면 이번 사이클은 건너뛴다.
+        GameObject clone = null;
+        if (!_zombiePool.TrySpawn(ref clone, spawnPoint.position, Quaternion.LookRotation(toPlayer)))
+        {
+            return;
+        }
+
+        Zombie zombie = clone.GetComponent<Zombie>();
         zombie.OnDied += OnZombieDied;
         _aliveZombies.Add(zombie);
         OnAliveCountChanged?.Invoke();
@@ -68,6 +77,8 @@ public class ZombieSpawner : MonoBehaviour
 
     private void OnZombieDied(Zombie zombie)
     {
+        // 같은 좀비가 풀에서 다시 나올 때 구독이 쌓이지 않도록 한 생명이 끝나면 해제한다.
+        zombie.OnDied -= OnZombieDied;
         _aliveZombies.Remove(zombie);
         OnAliveCountChanged?.Invoke();
     }

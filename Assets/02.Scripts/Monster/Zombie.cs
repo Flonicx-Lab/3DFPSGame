@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Lean.Pool;
 using UnityEngine;
 
 // FSM(유한 상태 머신) : 유한개의 상태가 있고, 상태마다 행동을 다르게 함으로써 AI를 구현하는 유명한 방법
@@ -18,7 +19,7 @@ public enum ZombieState
     Die // 사망 : 쓰러지고 잠시 뒤 사라진다.
 }
 
-public class Zombie : MonoBehaviour, IDamagable
+public class Zombie : MonoBehaviour, IDamagable, IPoolable
 {
     private const float HomeArrivalDistance = 1f; // 시작 지점 도착으로 보는 거리
 
@@ -45,34 +46,47 @@ public class Zombie : MonoBehaviour, IDamagable
     private Vector3 _startPosition;
 
     private readonly Dictionary<ZombieState, IZombieState> _states = new();
+    private ZombiePatrolState _patrolState;
     private IZombieState _currentState;
-    private ZombieState _state = ZombieState.Patrol;
+    private ZombieState _state;
 
     public event Action OnDamaged;
     public event Action<Zombie> OnDied;
+    public event Action OnSpawned;
 
     private void Awake()
     {
-        _health = _maxHealth;
-    }
-
-    private void Start()
-    {
         _player = GameObject.FindGameObjectWithTag("Player");
         _controller = GetComponent<CharacterController>();
-        _startPosition = transform.position;
 
-        Vector3 patrolPointA = _startPosition + transform.forward * _patrolDistance;
-        Vector3 patrolPointB = _startPosition - transform.forward * _patrolDistance;
-
-        _states[ZombieState.Patrol] = new ZombiePatrolState(this, patrolPointA, patrolPointB);
+        _patrolState = new ZombiePatrolState(this);
+        _states[ZombieState.Patrol] = _patrolState;
         _states[ZombieState.Trace] = new ZombieTraceState(this);
         _states[ZombieState.Comeback] = new ZombieComebackState(this);
         _states[ZombieState.Attack] = new ZombieAttackState(this);
         _states[ZombieState.Hit] = new ZombieHitState(this);
         _states[ZombieState.Die] = new ZombieDieState(this);
+    }
 
-        _currentState = _states[_state];
+    // 풀에서 꺼내질 때마다 처음 상태로 되돌린다.
+    public void OnSpawn()
+    {
+        _health = _maxHealth;
+        _controller.enabled = true;
+        _startPosition = transform.position;
+
+        Vector3 patrolPointA = _startPosition + transform.forward * _patrolDistance;
+        Vector3 patrolPointB = _startPosition - transform.forward * _patrolDistance;
+        _patrolState.SetPatrolPoints(patrolPointA, patrolPointB);
+
+        _state = ZombieState.Patrol;
+        _currentState = _patrolState;
+
+        OnSpawned?.Invoke();
+    }
+
+    public void OnDespawn()
+    {
     }
 
     private void Update()

@@ -16,11 +16,13 @@ public class ZombieHealthbar : MonoBehaviour
     {
         RefreshHealth();
         _zombie.OnDamaged += RefreshHealth;
+        _zombie.OnSpawned += RefreshHealth;
     }
 
     private void OnDestroy()
     {
         _zombie.OnDamaged -= RefreshHealth;
+        _zombie.OnSpawned -= RefreshHealth;
     }
 
     private void LateUpdate()

@@ -7,13 +7,17 @@ public class ZombiePatrolState : IZombieState
     private const float SpeedRatio = 0.5f; // 추격 속도 대비 순찰 속도
 
     private readonly Zombie _zombie;
-    private readonly Vector3 _pointA;
-    private readonly Vector3 _pointB;
+    private Vector3 _pointA;
+    private Vector3 _pointB;
     private Vector3 _currentTarget;
 
-    public ZombiePatrolState(Zombie zombie, Vector3 pointA, Vector3 pointB)
+    public ZombiePatrolState(Zombie zombie)
     {
         _zombie = zombie;
+    }
+
+    public void SetPatrolPoints(Vector3 pointA, Vector3 pointB)
+    {
         _pointA = pointA;
         _pointB = pointB;
         _currentTarget = pointA;

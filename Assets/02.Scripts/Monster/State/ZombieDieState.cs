@@ -1,4 +1,5 @@
 using System.Collections;
+using Lean.Pool;
 using UnityEngine;
 
 // 사망 : 쓰러지고 잠시 뒤 사라진다.
@@ -31,6 +32,6 @@ public class ZombieDieState : IZombieState
     {
         _zombie.DisableMovement();
         yield return _dieWait;
-        Object.Destroy(_zombie.gameObject);
+        LeanPool.Despawn(_zombie.gameObject);
     }
 }
