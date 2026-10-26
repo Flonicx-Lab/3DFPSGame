@@ -49,6 +49,7 @@ public class Zombie : MonoBehaviour, IDamagable
     private ZombieState _state = ZombieState.Patrol;
 
     public event Action OnDamaged;
+    public event Action<Zombie> OnDied;
 
     private void Awake()
     {
@@ -128,6 +129,7 @@ public class Zombie : MonoBehaviour, IDamagable
         {
             Debug.Log($"{_state} -> Die");
             _state = ZombieState.Die;
+            OnDied?.Invoke(this);
             StartCoroutine(Die_Coroutine());
         }
     }
