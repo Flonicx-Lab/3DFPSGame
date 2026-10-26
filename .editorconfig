@@ -4,13 +4,14 @@ root = true
 [Assets/02.Scripts/**.cs]
 
 #### 저장 / 들여쓰기 / 중괄호 ####
-
 trim_trailing_whitespace = true
 insert_final_newline = true
 indent_style = space
 indent_size = 4
 tab_width = 4
 csharp_new_line_before_open_brace = all
+resharper_keep_existing_attribute_arrangement = true
+resharper_place_field_attribute_on_same_line = false
 
 # case 블록 중괄호 안 내용은 한 단계 더 들여쓴다 (중괄호는 case 레이블과 같은 열).
 csharp_indent_case_contents_when_block = true
@@ -64,14 +65,14 @@ dotnet_naming_rule.private_constants_pascal.severity = warning
 # private static readonly → s_camelCase
 dotnet_naming_symbols.private_static_readonly.applicable_kinds = field
 dotnet_naming_symbols.private_static_readonly.applicable_accessibilities = private
-dotnet_naming_symbols.private_static_readonly.required_modifiers = static,readonly
+dotnet_naming_symbols.private_static_readonly.required_modifiers = static, readonly
 dotnet_naming_rule.private_static_readonly_camel.symbols = private_static_readonly
 dotnet_naming_rule.private_static_readonly_camel.style = static_camel_case
 dotnet_naming_rule.private_static_readonly_camel.severity = warning
 
 # 타입명(class/struct/interface/enum) → PascalCase (_ 금지)
 # pascal_case 스타일은 단어 구분자를 허용하지 않으므로 Player_Move 같은 이름은 위반으로 잡힌다.
-dotnet_naming_symbols.types.applicable_kinds = class,struct,interface,enum
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
 dotnet_naming_symbols.types.applicable_accessibilities = *
 dotnet_naming_rule.types_pascal.symbols = types
 dotnet_naming_rule.types_pascal.style = pascal_case

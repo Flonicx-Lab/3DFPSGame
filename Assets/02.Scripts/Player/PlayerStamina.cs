@@ -4,16 +4,16 @@ using UnityEngine;
 public sealed class PlayerStamina : MonoBehaviour
 {
     [SerializeField, Min(1f)] private float _maxStamina = 100f;
-    [SerializeField, Min(0f)] private float _recoveryPerSecond = 20f;
+    [SerializeField, Min(0f)] private float _recoveryPerSecond = 40f;
 
-    private float _currentStamina;
+    private float _stamina;
 
-    public float CurrentStamina => _currentStamina;
+    public float Stamina => _stamina;
     public float MaxStamina => _maxStamina;
 
     private void Awake()
     {
-        _currentStamina = _maxStamina;
+        _stamina = _maxStamina;
     }
 
     public bool TrySpend(float amount)
@@ -23,19 +23,19 @@ public sealed class PlayerStamina : MonoBehaviour
             throw new ArgumentOutOfRangeException(nameof(amount));
         }
 
-        if (_currentStamina < amount)
+        if (_stamina < amount)
         {
             return false;
         }
 
-        _currentStamina -= amount;
+        _stamina -= amount;
         return true;
     }
 
     public void Recover(float deltaTime)
     {
-        _currentStamina = Mathf.MoveTowards(
-            _currentStamina,
+        _stamina = Mathf.MoveTowards(
+            _stamina,
             _maxStamina,
             _recoveryPerSecond * deltaTime);
     }
