@@ -10,6 +10,7 @@ public class PlayerGunFire : MonoBehaviour
 
     [Header("스텟")]
     [SerializeField] private ParticleSystem _hitEffectPrefab;
+    [SerializeField] private GunLaser _laser;
     [SerializeField] private float _range = 100f;
     [SerializeField] private float _damage = 10f;
     [SerializeField] private float _fireInterval = 0.1f;
@@ -70,6 +71,7 @@ public class PlayerGunFire : MonoBehaviour
 
         // 4. 레이를 발사하고, 만일 부딪힌 물체가 있다면 이펙트 표시
         var isHit = Physics.Raycast(ray, out hitInfo, _range);
+        _laser.Show(isHit ? hitInfo.point : ray.GetPoint(_range));
         if (isHit)
         {
             // 5. 오브젝트 풀을 통해 피격 이펙트 생성 및 지연 반환
