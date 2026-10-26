@@ -19,6 +19,6 @@ public class ZombieHealthbar : MonoBehaviour
         _slider.value = _zombie.Health / _zombie.MaxHealth;
 
         // 빌보드 : 체력바가 카메라를 쳐다보게 한다.
-        transform.forward = Camera.main.transform.forward;
+        _slider.transform.forward = Camera.main.transform.forward;
     }
 }
