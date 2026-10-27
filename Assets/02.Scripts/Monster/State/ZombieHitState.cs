@@ -16,6 +16,7 @@ public class ZombieHitState : IZombieState
 
     public void Enter()
     {
+        _zombie.StopMovement();
         _zombie.StartCoroutine(Hit_Coroutine());
     }
 

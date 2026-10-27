@@ -199,8 +199,16 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     // speedRatio : 이동 속도 대비 실제 속도 비율
     public void MoveTo(Vector3 destination, float speedRatio)
     {
+        _agent.isStopped = false;
         _agent.speed = _moveSpeed * speedRatio;
         _agent.SetDestination(destination);
+    }
+
+    // 남은 속도를 감속에 맡기면 정지 거리를 지나 미끄러져 들어오므로 바로 0으로 만든다.
+    public void StopMovement()
+    {
+        _agent.isStopped = true;
+        _agent.velocity = Vector3.zero;
     }
 
     public void AttackPlayer()

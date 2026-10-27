@@ -14,6 +14,7 @@ public class ZombieAttackState : IZombieState
     public void Enter()
     {
         _attackTimer = 0f;
+        _zombie.StopMovement();
         _zombie.SetAnimationTrigger(ZombieAnimatorParams.MoveToAttackDelay);
     }
 
