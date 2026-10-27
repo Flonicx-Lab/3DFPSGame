@@ -12,6 +12,7 @@ using UnityEngine.AI;
 // 좀비가 가질 수 있는 상태. 상태별 동작은 Monster/State 폴더의 상태 객체가 맡는다.
 public enum ZombieState
 {
+    Idle, // 대기 : 순찰 지점에서 잠시 쉰다.
     Patrol, // 순찰 : 시작 지점 주변 두 지점을 왕복한다.
     Trace, //  추격 : 플레이어를 쫒아간다.
     Comeback, // 복귀 : 처음 자리로 돌아간다.
@@ -23,8 +24,6 @@ public enum ZombieState
 [RequireComponent(typeof(NavMeshAgent))]
 public class Zombie : MonoBehaviour, IDamagable, IPoolable
 {
-    private const float HomeArrivalDistance = 1f; // 시작 지점 도착으로 보는 거리
-
     [Header("스텟")]
     [SerializeField] private float _detectDistance = 8f; // 플레이어를 발견하는 탐지거리
     [SerializeField] private float _comebackDistance = 12f; // 되돌아가기 시작하는 거리
@@ -51,6 +50,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     private IZombieState _currentState;
     private ZombieState _state;
     private NavMeshAgent _agent;
+    private Animator _animator;
 
     public event Action OnDamaged;
     public event Action<Zombie> OnDied;
@@ -60,8 +60,10 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     {
         _player = GameObject.FindGameObjectWithTag("Player");
         _agent = GetComponent<NavMeshAgent>();
+        _animator = GetComponentInChildren<Animator>();
 
         _patrolState = new ZombiePatrolState(this);
+        _states[ZombieState.Idle] = new ZombieIdleState(this);
         _states[ZombieState.Patrol] = _patrolState;
         _states[ZombieState.Trace] = new ZombieTraceState(this);
         _states[ZombieState.Comeback] = new ZombieComebackState(this);
@@ -73,6 +75,8 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     // 풀에서 꺼내질 때마다 처음 상태로 되돌린다.
     public void OnSpawn()
     {
+        // 사망 때 끈 에이전트는 오브젝트를 다시 켜도 꺼진 채로 남는다.
+        _agent.enabled = true;
         _health = _maxHealth;
         _startPosition = transform.position;
 
@@ -82,6 +86,8 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
         _state = ZombieState.Patrol;
         _currentState = _patrolState;
+        // 애니메이터는 켜질 때 기본 상태 Idle에서 시작하므로 순찰에 맞춰 이동 동작으로 넘긴다.
+        _animator.SetTrigger(ZombieAnimatorParams.IdleToMove);
 
         OnSpawned?.Invoke();
     }
@@ -128,7 +134,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
         Destroy(bloodSpray, _bloodSprayTime);
 
-
         StopAllCoroutines();
 
         if (_health > 0f)
@@ -159,7 +164,13 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
     public bool IsNearStart()
     {
-        return GetHorizontalDistanceTo(_startPosition) < HomeArrivalDistance;
+        return HasArrivedAt(_startPosition);
+    }
+
+    // 에이전트는 남은 거리가 정지 거리 이하가 되면 스스로 멈추므로, 더 짧은 거리로 판정하면 도착하지 못한다.
+    public bool HasArrivedAt(Vector3 point)
+    {
+        return GetHorizontalDistanceTo(point) <= _agent.stoppingDistance;
     }
 
     private float GetDistanceTo(Vector3 point)
@@ -168,7 +179,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     }
 
     // 도착 판정용. 이동은 수평으로만 하므로 높이 차이는 무시한다.
-    public float GetHorizontalDistanceTo(Vector3 point)
+    private float GetHorizontalDistanceTo(Vector3 point)
     {
         Vector3 offset = point - transform.position;
         offset.y = 0f;
@@ -194,6 +205,11 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
     public void AttackPlayer()
     {
+        AttackAction();
+    }
+
+    public void AttackAction()
+    {
         DamageInfo damageInfo = new()
         {
             Value = _attackDamage,
@@ -202,6 +218,11 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         };
         _player.GetComponent<IDamagable>().TakeDamage(damageInfo);
         Debug.Log("플레이어를 때렸습니다");
+    }
+
+    public void SetAnimationTrigger(int triggerId)
+    {
+        _animator.SetTrigger(triggerId);
     }
 
     public void DisableMovement()

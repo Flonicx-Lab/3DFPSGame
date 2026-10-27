@@ -3,7 +3,6 @@ using UnityEngine;
 // 순찰 : 시작 지점 주변 두 지점을 왕복한다.
 public class ZombiePatrolState : IZombieState
 {
-    private const float ArrivalDistance = 0.2f; // 목표 지점 도착으로 보는 거리
     private const float SpeedRatio = 0.5f; // 추격 속도 대비 순찰 속도
 
     private readonly Zombie _zombie;
@@ -29,20 +28,20 @@ public class ZombiePatrolState : IZombieState
 
     public void Update()
     {
-        // 1. 플레이어가 탐지 거리 이내이면 추격 시작
         if (_zombie.IsPlayerDetected())
         {
             _zombie.ChangeState(ZombieState.Trace);
             return;
         }
 
-        // 2. 현재 순찰 목표 지점 근처에 도착하면 반대편 지점으로 목표 전환
-        if (_zombie.GetHorizontalDistanceTo(_currentTarget) < ArrivalDistance)
+        // 도착하면 다음 목표를 반대편 지점으로 정해 두고 쉰다. 대기가 끝나면 그 지점으로 출발한다.
+        if (_zombie.HasArrivedAt(_currentTarget))
         {
             _currentTarget = _currentTarget == _pointA ? _pointB : _pointA;
+            _zombie.ChangeState(ZombieState.Idle);
+            return;
         }
 
-        // 3. 목표 지점을 향해 이동
         _zombie.MoveTo(_currentTarget, SpeedRatio);
     }
 

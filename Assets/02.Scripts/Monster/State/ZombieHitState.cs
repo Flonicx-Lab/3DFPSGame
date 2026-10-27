@@ -4,7 +4,7 @@ using UnityEngine;
 // 피격 : 공격을 받아 잠깐 멈칫한다.
 public class ZombieHitState : IZombieState
 {
-    private const float HitDuration = 0.3f;
+    private const float HitDuration = 0.5f;
 
     private readonly Zombie _zombie;
     private readonly WaitForSeconds _hitWait = new(HitDuration);
@@ -29,6 +29,7 @@ public class ZombieHitState : IZombieState
 
     private IEnumerator Hit_Coroutine()
     {
+        _zombie.SetAnimationTrigger(ZombieAnimatorParams.Hit);
         yield return _hitWait;
         _zombie.ChangeState(ZombieState.Trace);
     }

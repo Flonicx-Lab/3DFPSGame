@@ -14,6 +14,7 @@ public class ZombieAttackState : IZombieState
     public void Enter()
     {
         _attackTimer = 0f;
+        _zombie.SetAnimationTrigger(ZombieAnimatorParams.MoveToAttackDelay);
     }
 
     public void Update()
@@ -30,11 +31,13 @@ public class ZombieAttackState : IZombieState
         if (_attackTimer >= _zombie.AttackInterval)
         {
             _zombie.AttackPlayer();
+            _zombie.SetAnimationTrigger(ZombieAnimatorParams.StartAttack);
             _attackTimer = 0f;
         }
     }
 
     public void Exit()
     {
+        _zombie.SetAnimationTrigger(ZombieAnimatorParams.AttackToMove);
     }
 }
