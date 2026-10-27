@@ -30,7 +30,9 @@ public class ZombieDieState : IZombieState
 
     private IEnumerator Die_Coroutine()
     {
-        _zombie.DisableMovement();
+        _zombie.DisableBody();
+        // 연속 피격으로 처리되지 않고 남은 Hit 트리거가 있으면 Any State 전이로 사망 동작을 끊는다.
+        _zombie.ResetAnimationTrigger(ZombieAnimatorParams.Hit);
         _zombie.SetAnimationTrigger(ZombieAnimatorParams.Die);
         yield return _dieWait;
         LeanPool.Despawn(_zombie.gameObject);

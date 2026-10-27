@@ -50,6 +50,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     private IZombieState _currentState;
     private ZombieState _state;
     private NavMeshAgent _agent;
+    private Collider _collider;
     private Animator _animator;
 
     public event Action OnDamaged;
@@ -60,6 +61,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     {
         _player = GameObject.FindGameObjectWithTag("Player");
         _agent = GetComponent<NavMeshAgent>();
+        _collider = GetComponent<Collider>();
         _animator = GetComponentInChildren<Animator>();
 
         _patrolState = new ZombiePatrolState(this);
@@ -75,8 +77,9 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     // 풀에서 꺼내질 때마다 처음 상태로 되돌린다.
     public void OnSpawn()
     {
-        // 사망 때 끈 에이전트는 오브젝트를 다시 켜도 꺼진 채로 남는다.
+        // 사망 때 끈 에이전트와 콜라이더는 오브젝트를 다시 켜도 꺼진 채로 남는다.
         _agent.enabled = true;
+        _collider.enabled = true;
         _health = _maxHealth;
         _startPosition = transform.position;
 
@@ -248,8 +251,15 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _animator.SetTrigger(triggerId);
     }
 
-    public void DisableMovement()
+    public void ResetAnimationTrigger(int triggerId)
+    {
+        _animator.ResetTrigger(triggerId);
+    }
+
+    // 사망 동작 동안 서 있던 자리의 콜라이더가 남으면 뒤에 있는 좀비 대신 총알을 맞는다.
+    public void DisableBody()
     {
         _agent.enabled = false;
+        _collider.enabled = false;
     }
 }
