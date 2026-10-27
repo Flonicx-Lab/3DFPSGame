@@ -29,6 +29,7 @@ public class ZombieAttackState : IZombieState
             return;
         }
 
+        _zombie.TurnToPlayer();
         _attackTimer += Time.deltaTime;
 
         if (_attackTimer >= _zombie.AttackInterval)

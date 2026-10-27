@@ -211,6 +211,20 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _agent.velocity = Vector3.zero;
     }
 
+    // 멈춘 에이전트는 회전하지 않으므로 직접 돌린다. 회전 속도는 에이전트 설정을 따른다.
+    public void TurnToPlayer()
+    {
+        Vector3 direction = _player.transform.position - transform.position;
+        direction.y = 0f;
+        if (direction == Vector3.zero)
+        {
+            return;
+        }
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation, Quaternion.LookRotation(direction), _agent.angularSpeed * Time.deltaTime);
+    }
+
     // 애니메이션 이벤트가 부른다. 이벤트는 다른 상태로 넘어가는 전환 중에도 실행되므로 공격 중이고 범위 안일 때만 때린다.
     public void AttackAction()
     {
