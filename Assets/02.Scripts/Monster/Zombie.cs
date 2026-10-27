@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Lean.Pool;
 using UnityEngine;
+using UnityEngine.AI;
 
 // FSM(유한 상태 머신) : 유한개의 상태가 있고, 상태마다 행동을 다르게 함으로써 AI를 구현하는 유명한 방법
 // - 상태 : 객체가 가질 수 있는 어떤 조건이나 상황
@@ -19,6 +20,7 @@ public enum ZombieState
     Die // 사망 : 쓰러지고 잠시 뒤 사라진다.
 }
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class Zombie : MonoBehaviour, IDamagable, IPoolable
 {
     private const float HomeArrivalDistance = 1f; // 시작 지점 도착으로 보는 거리
@@ -42,13 +44,13 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     [SerializeField] private GameObject _bloodSprayPrefab;
     [SerializeField] private float _bloodSprayTime = 3f;
     private GameObject _player;
-    private CharacterController _controller;
     private Vector3 _startPosition;
 
     private readonly Dictionary<ZombieState, IZombieState> _states = new();
     private ZombiePatrolState _patrolState;
     private IZombieState _currentState;
     private ZombieState _state;
+    private NavMeshAgent _agent;
 
     public event Action OnDamaged;
     public event Action<Zombie> OnDied;
@@ -57,7 +59,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     private void Awake()
     {
         _player = GameObject.FindGameObjectWithTag("Player");
-        _controller = GetComponent<CharacterController>();
+        _agent = GetComponent<NavMeshAgent>();
 
         _patrolState = new ZombiePatrolState(this);
         _states[ZombieState.Patrol] = _patrolState;
@@ -72,7 +74,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     public void OnSpawn()
     {
         _health = _maxHealth;
-        _controller.enabled = true;
         _startPosition = transform.position;
 
         Vector3 patrolPointA = _startPosition + transform.forward * _patrolDistance;
@@ -185,18 +186,10 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     }
 
     // speedRatio : 이동 속도 대비 실제 속도 비율
-    public void MoveTo(Vector3 point, float speedRatio)
+    public void MoveTo(Vector3 destination, float speedRatio)
     {
-        Vector3 direction = point - transform.position;
-        direction.y = 0f;
-        direction.Normalize();
-
-        if (direction != Vector3.zero)
-        {
-            transform.forward = direction;
-        }
-
-        _controller.SimpleMove(direction * (_moveSpeed * speedRatio));
+        _agent.speed = _moveSpeed * speedRatio;
+        _agent.SetDestination(destination);
     }
 
     public void AttackPlayer()
@@ -213,6 +206,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
     public void DisableMovement()
     {
-        _controller.enabled = false;
+        _agent.enabled = false;
     }
 }
