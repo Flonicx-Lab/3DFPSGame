@@ -127,7 +127,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 1.98}
+  m_AnchoredPosition: {x: 0, y: 0.99}
   m_SizeDelta: {x: 100, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &6841226799290628335
@@ -422,7 +422,7 @@ MonoBehaviour:
   _attackRange: 2
   _attackInterval: 1.2
   _moveSpeed: 5
-  _patrolDistance: 3
+  _patrolDistance: 8
   _maxHealth: 30
   _bloodSprayPrefab: {fileID: 1000013355911406, guid: d32aa916f50cac94db11e6f19821a58f, type: 3}
   _bloodSprayTime: 3
