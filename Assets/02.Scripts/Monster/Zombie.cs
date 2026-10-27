@@ -211,13 +211,14 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _agent.velocity = Vector3.zero;
     }
 
-    public void AttackPlayer()
-    {
-        AttackAction();
-    }
-
+    // 애니메이션 이벤트가 부른다. 이벤트는 다른 상태로 넘어가는 전환 중에도 실행되므로 공격 중이고 범위 안일 때만 때린다.
     public void AttackAction()
     {
+        if (_state != ZombieState.Attack || !IsPlayerInAttackRange())
+        {
+            return;
+        }
+
         DamageInfo damageInfo = new()
         {
             Value = _attackDamage,

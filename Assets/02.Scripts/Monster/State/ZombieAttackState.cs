@@ -16,6 +16,8 @@ public class ZombieAttackState : IZombieState
         _attackTimer = 0f;
         _zombie.StopMovement();
         _zombie.SetAnimationTrigger(ZombieAnimatorParams.MoveToAttackDelay);
+        // 붙자마자 첫 공격을 시작한다. 이후 공격은 간격마다 한다.
+        _zombie.SetAnimationTrigger(ZombieAnimatorParams.StartAttack);
     }
 
     public void Update()
@@ -31,7 +33,7 @@ public class ZombieAttackState : IZombieState
 
         if (_attackTimer >= _zombie.AttackInterval)
         {
-            _zombie.AttackPlayer();
+            // 데미지는 공격 클립의 애니메이션 이벤트가 타격 프레임에 준다.
             _zombie.SetAnimationTrigger(ZombieAnimatorParams.StartAttack);
             _attackTimer = 0f;
         }
