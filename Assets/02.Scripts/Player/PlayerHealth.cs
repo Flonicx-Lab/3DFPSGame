@@ -12,10 +12,14 @@ public class PlayerHealth : MonoBehaviour, IDamagable
     // Action 자료형은 함수들을 저장할 수 있다.
     // event 로 외부에서 수정,실행 못하게 방어
     public event Action OnDamaged;
+    private Animator _animator;
+    private int _injuredLayerIndex = 2;
 
     private void Awake()
     {
         _health = _maxHealth;
+        _animator = GetComponentInChildren<Animator>();
+        _injuredLayerIndex = _animator.GetLayerIndex("Injured Layer");
     }
 
     public void TakeDamage(DamageInfo damageInfo)
@@ -26,6 +30,12 @@ public class PlayerHealth : MonoBehaviour, IDamagable
         }
 
         _health -= damageInfo.Value;
+
+        // 체력에 따라 Injured Layer의 가중치를 바꿔준다.
+        var healthPercent = _health / _maxHealth;
+        var injured = Mathf.InverseLerp(0.5f, 0f, healthPercent); // 0 ~ 1
+        _animator.SetLayerWeight(_injuredLayerIndex, injured);
+
 
         OnDamaged?.Invoke(); //구독자들에게 알림 주기
 

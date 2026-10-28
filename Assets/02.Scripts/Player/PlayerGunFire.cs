@@ -57,10 +57,7 @@ public class PlayerGunFire : MonoBehaviour
             _fireTimer = _fireInterval;
             Shoot();
 
-            if (_animator.GetFloat("MoveMotion") == 0f)
-            {
-                _animator.SetTrigger("Attack");
-            }
+            _animator.SetBool("Fire", true);
 
             ;
 
@@ -71,6 +68,10 @@ public class PlayerGunFire : MonoBehaviour
 
                 Debug.Log("재장전 취소!");
             }
+        }
+        else
+        {
+            _animator.SetBool("Fire", false);
         }
     }
 
