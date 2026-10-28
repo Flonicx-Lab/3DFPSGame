@@ -14,6 +14,8 @@ public class PlayerMove : MonoBehaviour
     private float _coyoteTimer = 0f;
     private float _jumpBufferTimer = 0f;
 
+    private Animator _animator;
+
     [Header("스텟")]
     [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _runSpeed = 12f;
@@ -41,6 +43,7 @@ public class PlayerMove : MonoBehaviour
     {
         _characterController = GetComponent<CharacterController>();
         _stamina = GetComponent<PlayerStamina>();
+        _animator = GetComponentInChildren<Animator>();
     }
 
     private void Update()
@@ -55,6 +58,7 @@ public class PlayerMove : MonoBehaviour
 
         // 2. 입력에 따른 방향을 구한다.
         Vector3 direction = new Vector3(h, 0, v).normalized;
+        _animator.SetFloat("MoveMotion", direction.magnitude);
         direction = transform.TransformDirection(direction);
 
         var isGrounded = _characterController.isGrounded;

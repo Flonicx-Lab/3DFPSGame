@@ -28,6 +28,13 @@ public class ZombiePatrolState : IZombieState
 
     public void Update()
     {
+        // 링크에 도착하면 점프로 넘어간다. 다른 전환보다 먼저 봐야 링크 위에서 멈추지 않는다.
+        if (_zombie.IsOnNavMeshLink())
+        {
+            _zombie.ChangeState(ZombieState.Jump);
+            return;
+        }
+
         if (_zombie.IsPlayerDetected())
         {
             _zombie.ChangeState(ZombieState.Trace);

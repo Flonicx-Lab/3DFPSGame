@@ -18,7 +18,8 @@ public enum ZombieState
     Comeback, // 복귀 : 처음 자리로 돌아간다.
     Attack, // 공격 : 일정 시간마다 플레이어를 때린다.
     Hit, // 피격 : 공격을 받아 잠깐 멈칫한다.
-    Die // 사망 : 쓰러지고 잠시 뒤 사라진다.
+    Die, // 사망 : 쓰러지고 잠시 뒤 사라진다.
+    Jump // 점프 : 링크를 포물선으로 넘어간다.
 }
 
 [RequireComponent(typeof(NavMeshAgent))]
@@ -33,15 +34,19 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     [SerializeField] private float _moveSpeed = 5f;
     [SerializeField] private float _patrolDistance = 3f; // 순찰 반경 거리
     [SerializeField] private float _maxHealth = 30f;
+    [SerializeField] private float _jumpHeight = 1f; // 링크 직선 경로 위로 더하는 포물선 높이
 
     private float _health;
     public float MaxHealth => _maxHealth;
     public float Health => _health;
     public float AttackInterval => _attackInterval;
+    public float JumpHeight => _jumpHeight;
+    public bool IsDead => _health <= 0f;
+    public ZombieState PreviousState { get; private set; }
 
     [Header("이펙트")]
     [SerializeField] private GameObject _bloodSprayPrefab;
-    [SerializeField] private float _bloodSprayTime = 3f;
+    [SerializeField] private float _bloodSprayReturnDelay = 1f;
     private GameObject _player;
     private Vector3 _startPosition;
 
@@ -51,7 +56,9 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     private ZombieState _state;
     private NavMeshAgent _agent;
     private Collider _collider;
+    private ZombieHitbox[] _hitboxes;
     private Animator _animator;
+    private Vector3 _modelBasePosition;
 
     public event Action OnDamaged;
     public event Action<Zombie> OnDied;
@@ -62,7 +69,16 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _player = GameObject.FindGameObjectWithTag("Player");
         _agent = GetComponent<NavMeshAgent>();
         _collider = GetComponent<Collider>();
+        _hitboxes = GetComponentsInChildren<ZombieHitbox>();
+        foreach (ZombieHitbox hitbox in _hitboxes)
+        {
+            hitbox.SetOwner(this);
+        }
+
         _animator = GetComponentInChildren<Animator>();
+        _modelBasePosition = _animator.transform.localPosition;
+        // 링크 통과는 점프 상태가 직접 한다. 켜져 있으면 직선으로 미끄러져 넘어간다.
+        _agent.autoTraverseOffMeshLink = false;
 
         _patrolState = new ZombiePatrolState(this);
         _states[ZombieState.Idle] = new ZombieIdleState(this);
@@ -72,6 +88,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _states[ZombieState.Attack] = new ZombieAttackState(this);
         _states[ZombieState.Hit] = new ZombieHitState(this);
         _states[ZombieState.Die] = new ZombieDieState(this);
+        _states[ZombieState.Jump] = new ZombieJumpState(this);
     }
 
     // 풀에서 꺼내질 때마다 처음 상태로 되돌린다.
@@ -80,6 +97,7 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         // 사망 때 끈 에이전트와 콜라이더는 오브젝트를 다시 켜도 꺼진 채로 남는다.
         _agent.enabled = true;
         _collider.enabled = true;
+        SetHitboxesEnabled(true);
         _health = _maxHealth;
         _startPosition = transform.position;
 
@@ -114,15 +132,22 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         Debug.Log($"{_state} -> {nextState}");
 
         _currentState.Exit();
+        PreviousState = _state;
         _state = nextState;
         _currentState = _states[nextState];
         _currentState.Enter();
     }
 
-    // 데미지 받는다.
+    // 부위 정보가 없는 범위 데미지는 루트 캡슐로 들어온다.
     public void TakeDamage(DamageInfo damageInfo)
     {
-        if (_state == ZombieState.Die)
+        TakeDamage(damageInfo, transform);
+    }
+
+    public void TakeDamage(DamageInfo damageInfo, Transform hitPart)
+    {
+        // 공중에서 죽은 좀비는 착지할 때까지 사망 상태가 아니므로 체력으로도 막는다.
+        if (_state == ZombieState.Die || IsDead)
         {
             return;
         }
@@ -131,23 +156,32 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
         OnDamaged?.Invoke();
 
-        GameObject bloodSpray = Instantiate(_bloodSprayPrefab, transform);
-        bloodSpray.transform.position = damageInfo.HitPoint;
-        bloodSpray.transform.forward = damageInfo.HitNormal;
+        GameObject bloodSpray = LeanPool.Spawn(
+            _bloodSprayPrefab, damageInfo.HitPoint, Quaternion.LookRotation(damageInfo.HitNormal), hitPart);
+        LeanPool.Despawn(bloodSpray, _bloodSprayReturnDelay);
 
-        Destroy(bloodSpray, _bloodSprayTime);
+        // 공중에서는 상태를 바꾸지 않는다. 사망은 점프 상태가 착지할 때 처리한다.
+        if (_state == ZombieState.Jump)
+        {
+            return;
+        }
 
         StopAllCoroutines();
 
         if (_health > 0f)
         {
             ChangeState(ZombieState.Hit);
+            return;
         }
-        else
-        {
-            ChangeState(ZombieState.Die);
-            OnDied?.Invoke(this);
-        }
+
+        Die();
+    }
+
+    public void Die()
+    {
+        StopBloodSprays();
+        ChangeState(ZombieState.Die);
+        OnDied?.Invoke(this);
     }
 
     public bool IsPlayerDetected()
@@ -158,6 +192,11 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     public bool IsPlayerInAttackRange()
     {
         return GetDistanceTo(_player.transform.position) <= _attackRange;
+    }
+
+    public bool IsOnNavMeshLink()
+    {
+        return _agent.isOnOffMeshLink;
     }
 
     public bool IsFarFromStart()
@@ -214,6 +253,17 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _agent.velocity = Vector3.zero;
     }
 
+    // 링크 끝점은 바닥 기준이라 Base Offset을 더해야 루트 높이가 된다.
+    public Vector3 GetLinkEndPosition()
+    {
+        return _agent.currentOffMeshLinkData.endPos + Vector3.up * _agent.baseOffset;
+    }
+
+    public void CompleteLink()
+    {
+        _agent.CompleteOffMeshLink();
+    }
+
     // 멈춘 에이전트는 회전하지 않으므로 직접 돌린다. 회전 속도는 에이전트 설정을 따른다.
     public void TurnToPlayer()
     {
@@ -256,10 +306,39 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _animator.ResetTrigger(triggerId);
     }
 
+    public void SetAnimationSpeed(float speed)
+    {
+        _animator.speed = speed;
+    }
+
+    // 모델만 내려 콜라이더와 에이전트 위치는 그대로 둔다.
+    public void SetBodyDip(float dip)
+    {
+        _animator.transform.localPosition = _modelBasePosition + Vector3.down * dip;
+    }
+
     // 사망 동작 동안 서 있던 자리의 콜라이더가 남으면 뒤에 있는 좀비 대신 총알을 맞는다.
     public void DisableBody()
     {
         _agent.enabled = false;
         _collider.enabled = false;
+        SetHitboxesEnabled(false);
+    }
+
+    // 새 분출만 멈추고 날아가는 입자는 수명을 다하게 둬서 피가 갑자기 끊기지 않게 한다.
+    private void StopBloodSprays()
+    {
+        foreach (ParticleSystem bloodSpray in GetComponentsInChildren<ParticleSystem>())
+        {
+            bloodSpray.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+        }
+    }
+
+    private void SetHitboxesEnabled(bool isEnabled)
+    {
+        foreach (ZombieHitbox hitbox in _hitboxes)
+        {
+            hitbox.SetEnabled(isEnabled);
+        }
     }
 }

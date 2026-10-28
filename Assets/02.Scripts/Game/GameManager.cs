@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour
     public GameState State => _state;
 
     [SerializeField] private TextMeshProUGUI _stateText;
+    [SerializeField] private Animator _playerAnimator;
+
     private const string ReadyText = "준비";
     private const string PlayText = "시작!";
     private const string GameOverText = "게임오버";
@@ -68,5 +70,7 @@ public class GameManager : MonoBehaviour
         _stateText.color = Color.red;
         _stateText.text = GameOverText;
         _stateText.gameObject.SetActive(true);
+
+        _playerAnimator.SetFloat("MoveMotion", 0f);
     }
 }

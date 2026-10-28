@@ -12,6 +12,7 @@ public class PlayerGunFire : MonoBehaviour
     [SerializeField] private ParticleSystem _hitEffectPrefab;
     [SerializeField] private GunLaser _laser;
     [SerializeField] private float _range = 100f;
+    [SerializeField] private LayerMask _hitLayers; // 좀비 루트 캡슐 대신 뼈 히트박스에 맞도록 Zombie 레이어는 뺀다.
     [SerializeField] private float _damage = 10f;
     [SerializeField] private float _fireInterval = 0.1f;
     [SerializeField] private int _maxAmmo = 50;
@@ -20,10 +21,16 @@ public class PlayerGunFire : MonoBehaviour
     private float _fireTimer = 0f;
     private int _currentAmmo;
     private Awaitable _reloadAwaitable;
+    private Animator _animator;
+
+    private void Awake()
+    {
+        _currentAmmo = _maxAmmo;
+        _animator = GetComponentInChildren<Animator>();
+    }
 
     private void Start()
     {
-        _currentAmmo = _maxAmmo;
     }
 
     private void Update()
@@ -50,6 +57,13 @@ public class PlayerGunFire : MonoBehaviour
             _fireTimer = _fireInterval;
             Shoot();
 
+            if (_animator.GetFloat("MoveMotion") == 0f)
+            {
+                _animator.SetTrigger("Attack");
+            }
+
+            ;
+
             if (_reloadAwaitable != null)
             {
                 _reloadAwaitable.Cancel();
@@ -70,7 +84,7 @@ public class PlayerGunFire : MonoBehaviour
         var hitInfo = new RaycastHit();
 
         // 4. 레이를 발사하고, 만일 부딪힌 물체가 있다면 이펙트 표시
-        var isHit = Physics.Raycast(ray, out hitInfo, _range);
+        var isHit = Physics.Raycast(ray, out hitInfo, _range, _hitLayers);
         _laser.Show(isHit ? hitInfo.point : ray.GetPoint(_range));
         if (isHit)
         {

@@ -14,6 +14,13 @@ public class ZombieTraceState : IZombieState
 
     public void Update()
     {
+        // 링크에 도착하면 점프로 넘어간다. 다른 전환보다 먼저 봐야 링크 위에서 멈추지 않는다.
+        if (_zombie.IsOnNavMeshLink())
+        {
+            _zombie.ChangeState(ZombieState.Jump);
+            return;
+        }
+
         // 처음 자리에서 너무 멀어지면 돌아간다.
         if (_zombie.IsFarFromStart())
         {
