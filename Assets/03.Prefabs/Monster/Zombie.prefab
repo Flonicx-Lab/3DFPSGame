@@ -418,7 +418,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Zombie
   _detectDistance: 15
   _comebackDistance: 30
-  _attackDamage: 100
+  _attackDamage: 10
   _attackRange: 2
   _attackInterval: 1.2
   _moveSpeed: 5
