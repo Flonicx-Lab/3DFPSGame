@@ -115,3 +115,11 @@ Thumbs.db
 !/GEMINI.md
 !/dotnet-tools.json
 !/setup.bat
+# IDE
+# AI 협업 문서. GEMINI.md는 저장소의 코드 리뷰 지침이라 배제하지 않는다
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/
+.agents/
+.ai-team/

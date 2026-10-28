@@ -2681,7 +2681,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1629786595}
   m_SourcePrefab: {fileID: 100100000, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
 --- !u!1 &965886387
 GameObject:
@@ -4560,6 +4563,11 @@ MonoBehaviour:
   m_IgnoreFromBuild: 0
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
+--- !u!1 &1629786592 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+  m_PrefabInstance: {fileID: 892515049}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1629786593 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
@@ -4570,6 +4578,18 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 9500000, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
   m_PrefabInstance: {fileID: 892515049}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1629786595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1629786592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da760892afb186d4faa42be0e74dc2a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerThrowEvent
 --- !u!1 &1634255918
 GameObject:
   m_ObjectHideFlags: 0
@@ -5655,6 +5675,7 @@ MonoBehaviour:
   _firePoint: {fileID: 1429070183}
   _bombPrefab: {fileID: 1797900830636296489, guid: da152192cf51c7645b8d87c678f7f098, type: 3}
   _throwPower: 15
+  _maxThrowPower: 25
   _maxBomb: 10
   _maxChargingTime: 1.5
 --- !u!114 &2074075408
