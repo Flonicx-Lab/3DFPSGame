@@ -23,6 +23,12 @@ public class PlayerGunFire : MonoBehaviour
     [SerializeField] private int _maxAmmo = 50;
     [SerializeField] private float _reloadDuration = 1.5f;
 
+    [Header("오디오")]
+    [SerializeField] private AudioSource _audioSource;
+    [SerializeField] private AudioClip _shotClip;
+    [SerializeField] private AudioClip _hitClip;
+    [SerializeField] private AudioClip _reloadClip;
+
     private float _fireTimer = 0f;
     private int _currentAmmo;
     public int CurrentAmmo => _currentAmmo;
@@ -62,21 +68,23 @@ public class PlayerGunFire : MonoBehaviour
         {
             _currentAmmo--;
             _fireTimer = _fireInterval;
-            Shoot();
-            _animator.Play(s_fireHash, FireLayerIndex, 0f);
-
             if (_reloadAwaitable != null)
             {
+                _audioSource.Stop();
                 _reloadAwaitable.Cancel();
                 _reloadAwaitable = null;
 
                 Debug.Log("재장전 취소!");
             }
+
+            Shoot();
+            _animator.Play(s_fireHash, FireLayerIndex, 0f);
         }
     }
 
     private void Shoot()
     {
+        _audioSource.PlayOneShot(_shotClip);
         StartCoroutine(MuzzleFalsh_Routine());
 
         Transform cameraTransform = Camera.main.transform;
@@ -103,12 +111,18 @@ public class PlayerGunFire : MonoBehaviour
             damageInfo.HitNormal = hitInfo.normal;
 
             // 맞은 대상이 좀비라면 TakeDamage
-            hitInfo.collider.GetComponent<IDamagable>()?.TakeDamage(damageInfo);
+            IDamagable damagable = hitInfo.collider.GetComponent<IDamagable>();
+            if (damagable != null)
+            {
+                damagable.TakeDamage(damageInfo);
+                _audioSource.PlayOneShot(_hitClip);
+            }
         }
     }
 
     private async Awaitable ReloadAsync()
     {
+        _audioSource.PlayOneShot(_reloadClip);
         Debug.Log("재장전 시작!");
 
         try

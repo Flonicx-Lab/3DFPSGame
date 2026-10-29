@@ -7,6 +7,7 @@ public class Bomb : MonoBehaviour
     private const float ExplosionEffectReturnDelay = 1.5f;
 
     [SerializeField] private ParticleSystem _explosionEffectPrefab;
+    [SerializeField] private AudioClip _explosionClip;
     [SerializeField] private float _explosionRange = 4.5f;
     [SerializeField] private float _explosionDamage = 100f;
     private Rigidbody _rigidbody;
@@ -35,6 +36,7 @@ public class Bomb : MonoBehaviour
             effect.Play();
             LeanPool.Despawn(effect.gameObject, ExplosionEffectReturnDelay);
         }
+        AudioSource.PlayClipAtPoint(_explosionClip, transform.position);
 
         // 2. 폭탄 본체 풀 반환
         LeanPool.Despawn(gameObject);
