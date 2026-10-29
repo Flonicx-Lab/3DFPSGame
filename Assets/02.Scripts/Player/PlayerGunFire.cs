@@ -37,17 +37,25 @@ public class PlayerGunFire : MonoBehaviour
 
     private Awaitable _reloadAwaitable;
     private Animator _animator;
+    private PlayerWeaponMode _weaponMode;
 
     private void Awake()
     {
         _currentAmmo = _maxAmmo;
         _animator = GetComponentInChildren<Animator>();
+        _weaponMode = GetComponent<PlayerWeaponMode>();
     }
 
     private void Update()
     {
         if (GameManager.Instance.State != GameState.Playing)
         {
+            return;
+        }
+
+        if (_weaponMode.Mode == WeaponMode.Dagger)
+        {
+            _animator.SetBool(s_fireHash, false);
             return;
         }
 
