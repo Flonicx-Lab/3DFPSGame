@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterController), typeof(PlayerStamina))]
+[RequireComponent(typeof(CharacterController), typeof(PlayerStamina), typeof(PlayerHealth))]
 public class PlayerMove : MonoBehaviour
 {
     private const float BaseGravity = -20f;
@@ -15,10 +15,12 @@ public class PlayerMove : MonoBehaviour
     private float _jumpBufferTimer = 0f;
 
     private Animator _animator;
+    private PlayerHealth _health;
 
     [Header("스텟")]
     [SerializeField] private float _moveSpeed = 7f;
     [SerializeField] private float _runSpeed = 12f;
+    [SerializeField] private float _injuredMoveSpeed = 1.8f;
     [SerializeField] private float _jumpPower = 10f;
     [SerializeField, Min(0f)] private float _runStaminaPerSecond = 20f;
     [SerializeField, Min(0f)] private float _jumpStaminaCost = 10f;
@@ -43,6 +45,7 @@ public class PlayerMove : MonoBehaviour
     {
         _characterController = GetComponent<CharacterController>();
         _stamina = GetComponent<PlayerStamina>();
+        _health = GetComponent<PlayerHealth>();
         _animator = GetComponentInChildren<Animator>();
     }
 
@@ -155,6 +158,12 @@ public class PlayerMove : MonoBehaviour
         }
 
         var targetSpeed = isRunning ? _runSpeed : _moveSpeed;
+
+        if (_health.IsInjured)
+        {
+            targetSpeed = _injuredMoveSpeed;
+        }
+
         Vector3 targetVelocity = direction * targetSpeed;
 
         // 10. 지상 가감속 및 공중 제어 보간
