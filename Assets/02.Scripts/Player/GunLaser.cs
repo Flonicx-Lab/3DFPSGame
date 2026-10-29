@@ -17,13 +17,14 @@ public class GunLaser : MonoBehaviour
         _line.enabled = false;
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!_line.enabled)
         {
             return;
         }
 
+        _line.SetPosition(0, transform.position);
         _hideTimer -= Time.deltaTime;
         if (_hideTimer <= 0f)
         {

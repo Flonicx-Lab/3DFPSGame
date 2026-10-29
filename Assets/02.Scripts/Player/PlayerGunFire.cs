@@ -7,6 +7,8 @@ using UnityEngine;
 public class PlayerGunFire : MonoBehaviour
 {
     private const float HitEffectReturnDelay = 1.0f;
+    private const int FireLayerIndex = 1;
+    private static readonly int s_fireHash = Animator.StringToHash("Fire");
 
     [Header("스텟")]
     [SerializeField] private ParticleSystem _hitEffectPrefab;
@@ -50,16 +52,15 @@ public class PlayerGunFire : MonoBehaviour
         }
 
         // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
-        var isMouseVisible = Cursor.visible;
-        if (!isMouseVisible && Input.GetButton("Fire1") && _fireTimer <= 0f && _currentAmmo > 0)
+        var isFireInputActive = !Cursor.visible && Input.GetButton("Fire1") && _currentAmmo > 0;
+        _animator.SetBool(s_fireHash, isFireInputActive);
+
+        if (isFireInputActive && _fireTimer <= 0f)
         {
             _currentAmmo--;
             _fireTimer = _fireInterval;
             Shoot();
-
-            _animator.SetBool("Fire", true);
-
-            ;
+            _animator.Play(s_fireHash, FireLayerIndex, 0f);
 
             if (_reloadAwaitable != null)
             {
@@ -68,10 +69,6 @@ public class PlayerGunFire : MonoBehaviour
 
                 Debug.Log("재장전 취소!");
             }
-        }
-        else
-        {
-            _animator.SetBool("Fire", false);
         }
     }
 
