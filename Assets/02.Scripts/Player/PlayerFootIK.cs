@@ -6,6 +6,7 @@ namespace FpsGame.Player
     [RequireComponent(typeof(Animator))]
     public sealed class PlayerFootIK : MonoBehaviour
     {
+        private const int InjuredLayerIndex = 2;
         private static readonly int s_moveMotionHash = Animator.StringToHash("MoveMotion");
 
         [SerializeField] private LayerMask _groundLayers;
@@ -27,6 +28,11 @@ namespace FpsGame.Player
 
         private void OnAnimatorIK(int layerIndex)
         {
+            if (layerIndex != InjuredLayerIndex)
+            {
+                return;
+            }
+
             FootSample leftFoot = SampleFoot(AvatarIKGoal.LeftFoot, _animator.leftFeetBottomHeight);
             FootSample rightFoot = SampleFoot(AvatarIKGoal.RightFoot, _animator.rightFeetBottomHeight);
 
