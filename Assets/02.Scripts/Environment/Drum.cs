@@ -6,6 +6,7 @@ using UnityEngine;
 public class Drum : MonoBehaviour, IDamagable
 {
     [SerializeField] private ParticleSystem _explosionEffectPrefab;
+    [SerializeField] private AudioClip _explosionClip;
 
     [Header("스텟")]
     [SerializeField] private float _health = 30f;
@@ -46,6 +47,7 @@ public class Drum : MonoBehaviour, IDamagable
         // 1. 폭발 이펙트를 생성한다.
         ParticleSystem effect = Instantiate(_explosionEffectPrefab, transform.position, Quaternion.identity);
         effect.Play();
+        AudioSource.PlayClipAtPoint(_explosionClip, transform.position);
 
         // 2. 위로 튀어오르며 빙글빙글 돈다.
         _rb.AddForce(Vector3.up * _launchForce, ForceMode.Impulse);
