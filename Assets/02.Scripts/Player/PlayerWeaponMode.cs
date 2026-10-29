@@ -2,7 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 
-// 숫자 키 1, 2로 무기 모드를 바꾸고, 지금 모드를 화면에 글자로 보여 준다.
+// 숫자 키 1, 2, 3으로 무기 모드를 바꾸고, 지금 모드를 화면에 글자로 보여 준다.
 public class PlayerWeaponMode : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI _modeText; // 화면 왼쪽 아래의 모드 글자
@@ -25,7 +25,7 @@ public class PlayerWeaponMode : MonoBehaviour
             return;
         }
 
-        // 숫자 키 1은 일반 모드, 2는 저격 모드
+        // 숫자 키 1은 일반 모드, 2는 저격 모드, 3은 단검 모드
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             SetMode(WeaponMode.Normal);
@@ -33,6 +33,10 @@ public class PlayerWeaponMode : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             SetMode(WeaponMode.Sniper);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            SetMode(WeaponMode.Dagger);
         }
     }
 
@@ -59,6 +63,9 @@ public class PlayerWeaponMode : MonoBehaviour
                 break;
             case WeaponMode.Sniper:
                 _modeText.text = "저격 모드";
+                break;
+            case WeaponMode.Dagger:
+                _modeText.text = "단검 모드";
                 break;
         }
     }
