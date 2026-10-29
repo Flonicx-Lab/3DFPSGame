@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FpsGame.Editor
 {
-    // 휴머노이드 클립의 지정 구간에 관절 사슬 제약을 적용해 새 클립으로 저장한다.
+    // Root와 골반은 원본을 유지하고 지정 구간의 관절 사슬 제약을 근육에 적용해 새 클립으로 저장한다.
     public static class ConstraintClipBaker
     {
         private const float MaximumAngleError = 0.5f;
@@ -42,16 +42,14 @@ namespace FpsGame.Editor
             Transform[] bones = GetBones(animator, chain);
             Transform[] transforms = animator.GetComponentsInChildren<Transform>(true);
             TransformState[] originalStates = CaptureStates(transforms);
-            bool startedAnimationMode = !AnimationMode.InAnimationMode();
+            var startedAnimationMode = !AnimationMode.InAnimationMode();
 
-            int lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
-            int keyCount = lastFrame + 1;
+            var lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
+            var keyCount = lastFrame + 1;
             Keyframe[][] muscleKeys = CreateKeyArrays(HumanTrait.MuscleCount, keyCount);
-            Keyframe[][] rootPositionKeys = CreateKeyArrays(3, keyCount);
-            Keyframe[][] rootRotationKeys = CreateKeyArrays(4, keyCount);
-            HumanPose pose = new HumanPose();
+            var pose = new HumanPose();
 
-            using (HumanPoseHandler poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
+            using (var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
             {
                 try
                 {
@@ -60,18 +58,18 @@ namespace FpsGame.Editor
                         AnimationMode.StartAnimationMode();
                     }
 
-                    for (int frame = 0; frame <= lastFrame; frame++)
+                    for (var frame = 0; frame <= lastFrame; frame++)
                     {
-                        float time = Mathf.Min(frame / source.frameRate, source.length);
+                        var time = Mathf.Min(frame / source.frameRate, source.length);
                         Sample(animator, source, time);
 
-                        float timeWeight = GetTimeWeight(
+                        var timeWeight = GetTimeWeight(
                             frame,
                             rampInStart,
                             holdStart,
                             holdEnd,
                             rampOutEnd);
-                        float angleError = ApplyConstraint(
+                        var angleError = ApplyConstraint(
                             animator.transform,
                             effector,
                             effectorLocalPoint,
@@ -83,13 +81,7 @@ namespace FpsGame.Editor
                             frame >= rampInStart && frame <= rampOutEnd);
 
                         poseHandler.GetHumanPose(ref pose);
-                        RecordPose(
-                            pose,
-                            time,
-                            frame,
-                            muscleKeys,
-                            rootPositionKeys,
-                            rootRotationKeys);
+                        RecordPose(pose, time, frame, muscleKeys);
                         Debug.Log($"ConstraintClipBaker frame={frame}, w={timeWeight:F3}, angle={angleError:F3}");
                     }
                 }
@@ -104,11 +96,7 @@ namespace FpsGame.Editor
                 }
             }
 
-            AnimationClip output = CreateOutputClip(
-                source,
-                muscleKeys,
-                rootPositionKeys,
-                rootRotationKeys);
+            AnimationClip output = CreateOutputClip(source, muscleKeys);
             SaveOutputClip(output, outputPath);
         }
 
@@ -166,7 +154,7 @@ namespace FpsGame.Editor
                 throw new ArgumentException("시간 구간은 rampInStart부터 rampOutEnd까지 순서대로 지정해야 한다.");
             }
 
-            int lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
+            var lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
             if (rampOutEnd > lastFrame)
             {
                 throw new ArgumentOutOfRangeException(nameof(rampOutEnd), "시간 구간이 원본 클립을 벗어났다.");
@@ -175,8 +163,8 @@ namespace FpsGame.Editor
 
         private static Transform[] GetBones(Animator animator, HumanBodyBones[] chain)
         {
-            Transform[] bones = new Transform[chain.Length];
-            for (int index = 0; index < chain.Length; index++)
+            var bones = new Transform[chain.Length];
+            for (var index = 0; index < chain.Length; index++)
             {
                 bones[index] = animator.GetBoneTransform(chain[index]);
                 if (bones[index] == null)
@@ -190,8 +178,8 @@ namespace FpsGame.Editor
 
         private static TransformState[] CaptureStates(Transform[] transforms)
         {
-            TransformState[] states = new TransformState[transforms.Length];
-            for (int index = 0; index < transforms.Length; index++)
+            var states = new TransformState[transforms.Length];
+            for (var index = 0; index < transforms.Length; index++)
             {
                 Transform transform = transforms[index];
                 states[index] = new TransformState(
@@ -205,7 +193,7 @@ namespace FpsGame.Editor
 
         private static void RestoreStates(Transform[] transforms, TransformState[] states)
         {
-            for (int index = 0; index < transforms.Length; index++)
+            for (var index = 0; index < transforms.Length; index++)
             {
                 transforms[index].SetLocalPositionAndRotation(states[index].Position, states[index].Rotation);
                 transforms[index].localScale = states[index].Scale;
@@ -214,8 +202,8 @@ namespace FpsGame.Editor
 
         private static Keyframe[][] CreateKeyArrays(int curveCount, int keyCount)
         {
-            Keyframe[][] keys = new Keyframe[curveCount][];
-            for (int index = 0; index < curveCount; index++)
+            var keys = new Keyframe[curveCount][];
+            for (var index = 0; index < curveCount; index++)
             {
                 keys[index] = new Keyframe[keyCount];
             }
@@ -249,21 +237,21 @@ namespace FpsGame.Editor
         {
             Vector3 originalEffectorPosition = effector.TransformPoint(effectorLocalPoint);
             Vector3 eyePosition = eye.position;
-            float distance = Vector3.Distance(originalEffectorPosition, eyePosition);
+            var distance = Vector3.Distance(originalEffectorPosition, eyePosition);
             Vector3 worldTargetDirection = root.TransformDirection(targetDirection.normalized);
             Vector3 targetPosition = eyePosition + worldTargetDirection * distance;
-            Quaternion[] originalRotations = new Quaternion[bones.Length];
+            var originalRotations = new Quaternion[bones.Length];
 
-            for (int index = 0; index < bones.Length; index++)
+            for (var index = 0; index < bones.Length; index++)
             {
                 originalRotations[index] = bones[index].localRotation;
             }
 
             if (solve)
             {
-                for (int iteration = 0; iteration < MaximumIterations; iteration++)
+                for (var iteration = 0; iteration < MaximumIterations; iteration++)
                 {
-                    float angleError = GetAngleError(
+                    var angleError = GetAngleError(
                         eyePosition,
                         effector.TransformPoint(effectorLocalPoint),
                         targetPosition);
@@ -272,12 +260,12 @@ namespace FpsGame.Editor
                         break;
                     }
 
-                    for (int index = 0; index < bones.Length; index++)
+                    for (var index = 0; index < bones.Length; index++)
                     {
                         Transform bone = bones[index];
                         Vector3 effectorDirection = effector.TransformPoint(effectorLocalPoint) - bone.position;
                         Vector3 targetPointDirection = targetPosition - bone.position;
-                        Quaternion correction = Quaternion.FromToRotation(
+                        var correction = Quaternion.FromToRotation(
                             effectorDirection,
                             targetPointDirection);
                         bone.rotation = Quaternion.Slerp(
@@ -288,7 +276,7 @@ namespace FpsGame.Editor
                 }
             }
 
-            for (int index = 0; index < bones.Length; index++)
+            for (var index = 0; index < bones.Length; index++)
             {
                 bones[index].localRotation = Quaternion.Slerp(
                     originalRotations[index],
@@ -341,31 +329,19 @@ namespace FpsGame.Editor
             HumanPose pose,
             float time,
             int frame,
-            Keyframe[][] muscleKeys,
-            Keyframe[][] rootPositionKeys,
-            Keyframe[][] rootRotationKeys)
+            Keyframe[][] muscleKeys)
         {
-            for (int muscle = 0; muscle < pose.muscles.Length; muscle++)
+            for (var muscle = 0; muscle < pose.muscles.Length; muscle++)
             {
                 muscleKeys[muscle][frame] = new Keyframe(time, pose.muscles[muscle]);
             }
-
-            rootPositionKeys[0][frame] = new Keyframe(time, pose.bodyPosition.x);
-            rootPositionKeys[1][frame] = new Keyframe(time, pose.bodyPosition.y);
-            rootPositionKeys[2][frame] = new Keyframe(time, pose.bodyPosition.z);
-            rootRotationKeys[0][frame] = new Keyframe(time, pose.bodyRotation.x);
-            rootRotationKeys[1][frame] = new Keyframe(time, pose.bodyRotation.y);
-            rootRotationKeys[2][frame] = new Keyframe(time, pose.bodyRotation.z);
-            rootRotationKeys[3][frame] = new Keyframe(time, pose.bodyRotation.w);
         }
 
         private static AnimationClip CreateOutputClip(
             AnimationClip source,
-            Keyframe[][] muscleKeys,
-            Keyframe[][] rootPositionKeys,
-            Keyframe[][] rootRotationKeys)
+            Keyframe[][] muscleKeys)
         {
-            AnimationClip output = new AnimationClip
+            var output = new AnimationClip
             {
                 frameRate = source.frameRate,
                 wrapMode = source.wrapMode,
@@ -374,18 +350,11 @@ namespace FpsGame.Editor
 
             CopySourceCurves(source, output);
 
-            for (int muscle = 0; muscle < HumanTrait.MuscleCount; muscle++)
+            for (var muscle = 0; muscle < HumanTrait.MuscleCount; muscle++)
             {
                 SetCurve(output, HumanTrait.MuscleName[muscle], muscleKeys[muscle]);
             }
 
-            SetCurve(output, "RootT.x", rootPositionKeys[0]);
-            SetCurve(output, "RootT.y", rootPositionKeys[1]);
-            SetCurve(output, "RootT.z", rootPositionKeys[2]);
-            SetCurve(output, "RootQ.x", rootRotationKeys[0]);
-            SetCurve(output, "RootQ.y", rootRotationKeys[1]);
-            SetCurve(output, "RootQ.z", rootRotationKeys[2]);
-            SetCurve(output, "RootQ.w", rootRotationKeys[3]);
             output.EnsureQuaternionContinuity();
             AnimationUtility.SetAnimationClipSettings(
                 output,
@@ -413,12 +382,12 @@ namespace FpsGame.Editor
 
         private static void SetCurve(AnimationClip clip, string propertyName, Keyframe[] keys)
         {
-            EditorCurveBinding binding = EditorCurveBinding.FloatCurve(
+            var binding = EditorCurveBinding.FloatCurve(
                 string.Empty,
                 typeof(Animator),
                 propertyName);
             var curve = new AnimationCurve(keys);
-            for (int index = 0; index < keys.Length; index++)
+            for (var index = 0; index < keys.Length; index++)
             {
                 AnimationUtility.SetKeyLeftTangentMode(
                     curve,
