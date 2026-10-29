@@ -2,17 +2,15 @@ using UnityEngine;
 
 namespace FpsGame.Player
 {
-    // 단검 타격점이 눈에서 본 카메라 앞 방향과 일치하도록 상체 방향을 맞춘다.
+    // 단검 베기 타격점이 눈에서 본 카메라 앞 방향과 일치하도록 상체 방향을 맞춘다.
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerDaggerAim : MonoBehaviour
     {
         private const int DaggerLayerIndex = 4;
-        private static readonly int s_stabStateHash = Animator.StringToHash("Stab");
         private static readonly int s_slashStateHash = Animator.StringToHash("Slash");
 
         [SerializeField] private Transform _upperBody;
         [SerializeField] private Transform _eye;
-        [SerializeField] private Vector3 _stabStrikePoint = new Vector3(-0.487f, 0.512f, 0.137f);
         [SerializeField] private Vector3 _slashStrikePoint = new Vector3(-0.881f, 0.646f, -0.140f);
         [SerializeField] private float _blendTime = 0.22f;
 
@@ -39,12 +37,7 @@ namespace FpsGame.Player
                 : _animator.GetCurrentAnimatorStateInfo(DaggerLayerIndex);
             var targetWeight = 0f;
 
-            if (stateInfo.shortNameHash == s_stabStateHash)
-            {
-                _currentStrikePoint = _stabStrikePoint;
-                targetWeight = 1f;
-            }
-            else if (stateInfo.shortNameHash == s_slashStateHash)
+            if (stateInfo.shortNameHash == s_slashStateHash)
             {
                 _currentStrikePoint = _slashStrikePoint;
                 targetWeight = 1f;
