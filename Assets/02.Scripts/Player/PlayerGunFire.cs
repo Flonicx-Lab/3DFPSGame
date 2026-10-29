@@ -22,6 +22,10 @@ public class PlayerGunFire : MonoBehaviour
 
     private float _fireTimer = 0f;
     private int _currentAmmo;
+    public int CurrentAmmo => _currentAmmo;
+
+    public int MaxAmmo => _maxAmmo;
+
     private Awaitable _reloadAwaitable;
     private Animator _animator;
 
