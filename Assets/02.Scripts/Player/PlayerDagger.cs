@@ -11,6 +11,7 @@ namespace FpsGame.Player
 
         [SerializeField] private GameObject _rifle;
         [SerializeField] private GameObject _dagger;
+        [SerializeField] private PlayerAim _aim;
 
         private PlayerWeaponMode _weaponMode;
         private Animator _animator;
@@ -54,9 +55,10 @@ namespace FpsGame.Player
 
         private void HandleModeChange(WeaponMode mode)
         {
-            bool isDaggerMode = mode == WeaponMode.Dagger;
+            var isDaggerMode = mode == WeaponMode.Dagger;
             _rifle.SetActive(!isDaggerMode);
             _dagger.SetActive(isDaggerMode);
+            _aim.enabled = !isDaggerMode;
             _animator.SetLayerWeight(DaggerLayerIndex, isDaggerMode ? 1f : 0f);
         }
     }
