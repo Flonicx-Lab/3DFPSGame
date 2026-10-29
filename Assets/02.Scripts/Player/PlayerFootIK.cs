@@ -6,14 +6,18 @@ namespace FpsGame.Player
     [RequireComponent(typeof(Animator))]
     public sealed class PlayerFootIK : MonoBehaviour
     {
+        private static readonly int s_moveMotionHash = Animator.StringToHash("MoveMotion");
+
         [SerializeField] private LayerMask _groundLayers;
         [SerializeField] private float _rayStartHeight = 0.5f;
         [SerializeField] private float _rayDistance = 1.0f;
         [SerializeField] private float _maxBodyOffset = 0.2f;
         [SerializeField] private float _bodyOffsetSpeed = 1.0f;
+        [SerializeField] private float _ikBlendSpeed = 4f;
 
         private Animator _animator;
         private float _bodyOffset;
+        private float _standWeight = 1.0f;
         private int _lastOffsetUpdateFrame = -1;
 
         private void Awake()
@@ -28,7 +32,13 @@ namespace FpsGame.Player
 
             if (_lastOffsetUpdateFrame != Time.frameCount)
             {
-                float targetOffset = GetTargetBodyOffset(leftFoot, rightFoot);
+                var targetStandWeight = 1.0f - Mathf.Clamp01(_animator.GetFloat(s_moveMotionHash));
+                _standWeight = Mathf.MoveTowards(
+                    _standWeight,
+                    targetStandWeight,
+                    _ikBlendSpeed * Time.deltaTime);
+
+                var targetOffset = GetTargetBodyOffset(leftFoot, rightFoot) * _standWeight;
                 _bodyOffset = Mathf.MoveTowards(
                     _bodyOffset,
                     targetOffset,
@@ -59,8 +69,8 @@ namespace FpsGame.Player
                 return new FootSample(goal, position, rotation, bottomHeight);
             }
 
-            float animatedBottomHeight = position.y - bottomHeight;
-            float heightDifference = animatedBottomHeight - hit.point.y;
+            var animatedBottomHeight = position.y - bottomHeight;
+            var heightDifference = animatedBottomHeight - hit.point.y;
             return new FootSample(goal, position, rotation, bottomHeight, hit, heightDifference);
         }
 
@@ -100,8 +110,8 @@ namespace FpsGame.Player
             position.y = Mathf.Max(position.y, foot.Hit.point.y + foot.BottomHeight);
             Quaternion rotation = Quaternion.FromToRotation(Vector3.up, foot.Hit.normal) * foot.Rotation;
 
-            _animator.SetIKPositionWeight(foot.Goal, 1.0f);
-            _animator.SetIKRotationWeight(foot.Goal, 1.0f);
+            _animator.SetIKPositionWeight(foot.Goal, _standWeight);
+            _animator.SetIKRotationWeight(foot.Goal, _standWeight);
             _animator.SetIKPosition(foot.Goal, position);
             _animator.SetIKRotation(foot.Goal, rotation);
         }
