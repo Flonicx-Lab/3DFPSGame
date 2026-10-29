@@ -806,8 +806,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 314695470}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.14772858, y: 0.029627219, z: 0.86982036, w: -0.46979898}
-  m_LocalPosition: {x: -0.721, y: 0.0258, z: 0.0852}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -0.7209, y: 0.0158, z: 0.09}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2266,6 +2266,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1470675012}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &736772998 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400004, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+  m_PrefabInstance: {fileID: 892515049}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &748799636
 GameObject:
   m_ObjectHideFlags: 0
@@ -2693,6 +2698,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1629786595}
+    - targetCorrespondingSourceObject: {fileID: 100060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1629786596}
+    - targetCorrespondingSourceObject: {fileID: 100060, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1629786597}
   m_SourcePrefab: {fileID: 100100000, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
 --- !u!1 &965886387
 GameObject:
@@ -3801,6 +3812,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2074075400}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1443341434 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400058, guid: fcb334eb247ae3e488abb081c847cf09, type: 3}
+  m_PrefabInstance: {fileID: 892515049}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1470675010
 GameObject:
   m_ObjectHideFlags: 0
@@ -4598,6 +4614,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da760892afb186d4faa42be0e74dc2a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerThrowEvent
+--- !u!114 &1629786596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1629786592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72a311ce9786c4a458a3256e590d2d83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Player.PlayerAim
+  _upperBody: {fileID: 1443341434}
+  _muzzle: {fileID: 314695471}
+  _aimDistance: 20
+--- !u!114 &1629786597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1629786592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c09593aa1b4a9774c8ea585728a8cc7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Player.PlayerHeadHider
+  _head: {fileID: 736772998}
 --- !u!1 &1634255918
 GameObject:
   m_ObjectHideFlags: 0
