@@ -6,23 +6,61 @@ namespace FpsGame.Player
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerDaggerAim : MonoBehaviour
     {
-        [SerializeField] private Transform _upperBody;
-        [SerializeField] private Vector3 _strikePoint = new Vector3(-0.54f, 0.29f, -0.44f);
+        private const int DaggerLayerIndex = 4;
+        private static readonly int s_stabStateHash = Animator.StringToHash("Stab");
+        private static readonly int s_slashStateHash = Animator.StringToHash("Slash");
 
+        [SerializeField] private Transform _upperBody;
+        [SerializeField] private Vector3 _stabStrikePoint = new Vector3(-0.487f, 0.512f, 0.137f);
+        [SerializeField] private Vector3 _slashStrikePoint = new Vector3(-0.881f, 0.646f, -0.140f);
+        [SerializeField] private float _blendTime = 0.22f;
+
+        private Animator _animator;
         private Transform _camera;
+        private Vector3 _currentStrikePoint;
+        private float _weight;
 
         private void Awake()
         {
+            _animator = GetComponent<Animator>();
             _camera = Camera.main.transform;
+        }
+
+        private void OnEnable()
+        {
+            _weight = 0f;
         }
 
         private void LateUpdate()
         {
-            var upperBodyPosition = _upperBody.position;
-            var strikePosition = _upperBody.TransformPoint(_strikePoint);
-            var strikeDirection = strikePosition - upperBodyPosition;
+            AnimatorStateInfo stateInfo = _animator.IsInTransition(DaggerLayerIndex)
+                ? _animator.GetNextAnimatorStateInfo(DaggerLayerIndex)
+                : _animator.GetCurrentAnimatorStateInfo(DaggerLayerIndex);
+            var targetWeight = 0f;
+
+            if (stateInfo.shortNameHash == s_stabStateHash)
+            {
+                _currentStrikePoint = _stabStrikePoint;
+                targetWeight = 1f;
+            }
+            else if (stateInfo.shortNameHash == s_slashStateHash)
+            {
+                _currentStrikePoint = _slashStrikePoint;
+                targetWeight = 1f;
+            }
+
+            _weight = Mathf.MoveTowards(_weight, targetWeight, Time.deltaTime / _blendTime);
+
+            if (_weight == 0f)
+            {
+                return;
+            }
+
+            Vector3 upperBodyPosition = _upperBody.position;
+            Vector3 strikePosition = _upperBody.TransformPoint(_currentStrikePoint);
+            Vector3 strikeDirection = strikePosition - upperBodyPosition;
             var radius = strikeDirection.magnitude;
-            var cameraToUpperBody = _camera.position - upperBodyPosition;
+            Vector3 cameraToUpperBody = _camera.position - upperBodyPosition;
             var projection = Vector3.Dot(cameraToUpperBody, _camera.forward);
             var discriminant = projection * projection - cameraToUpperBody.sqrMagnitude + radius * radius;
 
@@ -32,10 +70,12 @@ namespace FpsGame.Player
             }
 
             var distance = -projection + Mathf.Sqrt(discriminant);
-            var targetPosition = _camera.position + distance * _camera.forward;
-            _upperBody.rotation = Quaternion.FromToRotation(
+            Vector3 targetPosition = _camera.position + distance * _camera.forward;
+            var rotation = Quaternion.FromToRotation(
                 strikeDirection,
-                targetPosition - upperBodyPosition) * _upperBody.rotation;
+                targetPosition - upperBodyPosition);
+            _upperBody.rotation = Quaternion.Slerp(Quaternion.identity, rotation, _weight)
+                * _upperBody.rotation;
         }
     }
 }
