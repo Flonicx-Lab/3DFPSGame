@@ -12,20 +12,28 @@ public class PlayerBombFire : MonoBehaviour
     [SerializeField] private float _maxChargingTime = 1.5f;
 
     private int _currentBomb;
+    public int CurrentBomb => _currentBomb;
     private float _currentChargingTime;
     private bool _isHolding;
     private bool _isThrowing; // 버튼을 뗀 뒤 손을 놓는 이벤트가 올 때까지
     private Animator _animator;
+    private PlayerWeaponMode _weaponMode;
 
     private void Awake()
     {
         _currentBomb = _maxBomb;
         _animator = GetComponentInChildren<Animator>();
+        _weaponMode = GetComponent<PlayerWeaponMode>();
     }
 
     private void Update()
     {
         if (GameManager.Instance.State != GameState.Playing)
+        {
+            return;
+        }
+
+        if (_weaponMode.Mode != WeaponMode.Normal)
         {
             return;
         }
