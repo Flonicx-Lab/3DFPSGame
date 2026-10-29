@@ -24,7 +24,7 @@ namespace FpsGame.Player
                 return;
             }
 
-            float weight = _leftHandGrip.gameObject.activeInHierarchy ? 1.0f : 0.0f;
+            var weight = _leftHandGrip.gameObject.activeInHierarchy ? 1.0f : 0.0f;
             _animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, weight);
             _animator.SetIKPosition(AvatarIKGoal.LeftHand, _leftHandGrip.position);
         }
