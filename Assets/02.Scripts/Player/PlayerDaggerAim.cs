@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace FpsGame.Player
 {
-    // 단검 타격점이 카메라 중앙 광선에 놓이도록 상체 방향을 맞춘다.
+    // 단검 타격점이 눈에서 본 카메라 앞 방향과 일치하도록 상체 방향을 맞춘다.
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerDaggerAim : MonoBehaviour
     {
@@ -11,6 +11,7 @@ namespace FpsGame.Player
         private static readonly int s_slashStateHash = Animator.StringToHash("Slash");
 
         [SerializeField] private Transform _upperBody;
+        [SerializeField] private Transform _eye;
         [SerializeField] private Vector3 _stabStrikePoint = new Vector3(-0.487f, 0.512f, 0.137f);
         [SerializeField] private Vector3 _slashStrikePoint = new Vector3(-0.881f, 0.646f, -0.140f);
         [SerializeField] private float _blendTime = 0.22f;
@@ -56,24 +57,9 @@ namespace FpsGame.Player
                 return;
             }
 
-            Vector3 upperBodyPosition = _upperBody.position;
-            Vector3 strikePosition = _upperBody.TransformPoint(_currentStrikePoint);
-            Vector3 strikeDirection = strikePosition - upperBodyPosition;
-            var radius = strikeDirection.magnitude;
-            Vector3 cameraToUpperBody = _camera.position - upperBodyPosition;
-            var projection = Vector3.Dot(cameraToUpperBody, _camera.forward);
-            var discriminant = projection * projection - cameraToUpperBody.sqrMagnitude + radius * radius;
-
-            if (discriminant < 0f)
-            {
-                return;
-            }
-
-            var distance = -projection + Mathf.Sqrt(discriminant);
-            Vector3 targetPosition = _camera.position + distance * _camera.forward;
             var rotation = Quaternion.FromToRotation(
-                strikeDirection,
-                targetPosition - upperBodyPosition);
+                _upperBody.TransformPoint(_currentStrikePoint) - _eye.position,
+                _camera.forward);
             _upperBody.rotation = Quaternion.Slerp(Quaternion.identity, rotation, _weight)
                 * _upperBody.rotation;
         }
