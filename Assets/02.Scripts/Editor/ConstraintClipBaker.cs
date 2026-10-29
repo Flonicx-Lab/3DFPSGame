@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FpsGame.Editor
 {
-    // Root와 골반은 원본을 유지하고 지정 구간의 관절 사슬 제약을 근육에 적용해 새 클립으로 저장한다.
+    // 원본 Root에 자세 변화량을 더하고 지정 구간의 관절 사슬 제약을 근육에 적용해 새 클립으로 저장한다.
     public static class ConstraintClipBaker
     {
         private const float MaximumAngleError = 0.5f;
@@ -39,6 +39,8 @@ namespace FpsGame.Editor
                 holdEnd,
                 rampOutEnd);
 
+            AnimationCurve[] sourceRootPositionCurves = GetRequiredRootCurves(source, "RootT", 3);
+            AnimationCurve[] sourceRootRotationCurves = GetRequiredRootCurves(source, "RootQ", 4);
             Transform[] bones = GetBones(animator, chain);
             Transform[] transforms = animator.GetComponentsInChildren<Transform>(true);
             TransformState[] originalStates = CaptureStates(transforms);
@@ -47,7 +49,10 @@ namespace FpsGame.Editor
             var lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
             var keyCount = lastFrame + 1;
             Keyframe[][] muscleKeys = CreateKeyArrays(HumanTrait.MuscleCount, keyCount);
-            var pose = new HumanPose();
+            Keyframe[][] rootPositionKeys = CreateKeyArrays(3, keyCount);
+            Keyframe[][] rootRotationKeys = CreateKeyArrays(4, keyCount);
+            var originPose = new HumanPose();
+            var editedPose = new HumanPose();
 
             using (var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
             {
@@ -62,6 +67,7 @@ namespace FpsGame.Editor
                     {
                         var time = Mathf.Min(frame / source.frameRate, source.length);
                         Sample(animator, source, time);
+                        poseHandler.GetHumanPose(ref originPose);
 
                         var timeWeight = GetTimeWeight(
                             frame,
@@ -80,8 +86,17 @@ namespace FpsGame.Editor
                             timeWeight,
                             frame >= rampInStart && frame <= rampOutEnd);
 
-                        poseHandler.GetHumanPose(ref pose);
-                        RecordPose(pose, time, frame, muscleKeys);
+                        poseHandler.GetHumanPose(ref editedPose);
+                        RecordPose(editedPose, time, frame, muscleKeys);
+                        RecordRootPose(
+                            originPose,
+                            editedPose,
+                            sourceRootPositionCurves,
+                            sourceRootRotationCurves,
+                            time,
+                            frame,
+                            rootPositionKeys,
+                            rootRotationKeys);
                         Debug.Log($"ConstraintClipBaker frame={frame}, w={timeWeight:F3}, angle={angleError:F3}");
                     }
                 }
@@ -96,8 +111,36 @@ namespace FpsGame.Editor
                 }
             }
 
-            AnimationClip output = CreateOutputClip(source, muscleKeys);
+            AnimationClip output = CreateOutputClip(
+                source,
+                muscleKeys,
+                rootPositionKeys,
+                rootRotationKeys);
             SaveOutputClip(output, outputPath);
+        }
+
+        private static AnimationCurve[] GetRequiredRootCurves(
+            AnimationClip source,
+            string propertyPrefix,
+            int curveCount)
+        {
+            string[] componentNames = { "x", "y", "z", "w" };
+            var curves = new AnimationCurve[curveCount];
+            for (var index = 0; index < curveCount; index++)
+            {
+                var propertyName = $"{propertyPrefix}.{componentNames[index]}";
+                var binding = EditorCurveBinding.FloatCurve(
+                    string.Empty,
+                    typeof(Animator),
+                    propertyName);
+                curves[index] = AnimationUtility.GetEditorCurve(source, binding);
+                if (curves[index] == null)
+                {
+                    throw new InvalidOperationException($"원본 클립에 {propertyName} 커브가 필요하다.");
+                }
+            }
+
+            return curves;
         }
 
         private static void ValidateArguments(
@@ -337,9 +380,43 @@ namespace FpsGame.Editor
             }
         }
 
+        private static void RecordRootPose(
+            HumanPose originPose,
+            HumanPose editedPose,
+            AnimationCurve[] sourcePositionCurves,
+            AnimationCurve[] sourceRotationCurves,
+            float time,
+            int frame,
+            Keyframe[][] positionKeys,
+            Keyframe[][] rotationKeys)
+        {
+            var sourcePosition = new Vector3(
+                sourcePositionCurves[0].Evaluate(time),
+                sourcePositionCurves[1].Evaluate(time),
+                sourcePositionCurves[2].Evaluate(time));
+            Vector3 position = sourcePosition + editedPose.bodyPosition - originPose.bodyPosition;
+            positionKeys[0][frame] = new Keyframe(time, position.x);
+            positionKeys[1][frame] = new Keyframe(time, position.y);
+            positionKeys[2][frame] = new Keyframe(time, position.z);
+
+            var sourceRotation = new Quaternion(
+                sourceRotationCurves[0].Evaluate(time),
+                sourceRotationCurves[1].Evaluate(time),
+                sourceRotationCurves[2].Evaluate(time),
+                sourceRotationCurves[3].Evaluate(time));
+            Quaternion rotationDelta = Quaternion.Inverse(originPose.bodyRotation) * editedPose.bodyRotation;
+            Quaternion rotation = (sourceRotation * rotationDelta).normalized;
+            rotationKeys[0][frame] = new Keyframe(time, rotation.x);
+            rotationKeys[1][frame] = new Keyframe(time, rotation.y);
+            rotationKeys[2][frame] = new Keyframe(time, rotation.z);
+            rotationKeys[3][frame] = new Keyframe(time, rotation.w);
+        }
+
         private static AnimationClip CreateOutputClip(
             AnimationClip source,
-            Keyframe[][] muscleKeys)
+            Keyframe[][] muscleKeys,
+            Keyframe[][] rootPositionKeys,
+            Keyframe[][] rootRotationKeys)
         {
             var output = new AnimationClip
             {
@@ -354,6 +431,14 @@ namespace FpsGame.Editor
             {
                 SetCurve(output, HumanTrait.MuscleName[muscle], muscleKeys[muscle]);
             }
+
+            SetCurve(output, "RootT.x", rootPositionKeys[0]);
+            SetCurve(output, "RootT.y", rootPositionKeys[1]);
+            SetCurve(output, "RootT.z", rootPositionKeys[2]);
+            SetCurve(output, "RootQ.x", rootRotationKeys[0]);
+            SetCurve(output, "RootQ.y", rootRotationKeys[1]);
+            SetCurve(output, "RootQ.z", rootRotationKeys[2]);
+            SetCurve(output, "RootQ.w", rootRotationKeys[3]);
 
             output.EnsureQuaternionContinuity();
             AnimationUtility.SetAnimationClipSettings(
