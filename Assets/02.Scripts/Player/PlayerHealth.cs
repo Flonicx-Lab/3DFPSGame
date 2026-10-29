@@ -10,6 +10,7 @@ public class PlayerHealth : MonoBehaviour, IDamagable
 
     public float Health => _health;
     public float MaxHealth => _maxHealth;
+    public bool IsInjured => _health / _maxHealth <= InjuredHealthThreshold;
 
     // Action 자료형은 함수들을 저장할 수 있다.
     // event 로 외부에서 수정,실행 못하게 방어
@@ -34,8 +35,7 @@ public class PlayerHealth : MonoBehaviour, IDamagable
         _health -= damageInfo.Value;
 
         // 체력이 기준값 이하이면 부상 레이어를 완전히 적용한다.
-        var healthPercent = _health / _maxHealth;
-        var injured = healthPercent <= InjuredHealthThreshold ? 1f : 0f;
+        var injured = IsInjured ? 1f : 0f;
         _animator.SetLayerWeight(_injuredLayerIndex, injured);
 
 
