@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour, IDamagable
 {
+    private const float InjuredHealthThreshold = 0.5f;
+
     [SerializeField] private float _maxHealth;
     private float _health;
 
@@ -31,9 +33,9 @@ public class PlayerHealth : MonoBehaviour, IDamagable
 
         _health -= damageInfo.Value;
 
-        // 체력에 따라 Injured Layer의 가중치를 바꿔준다.
+        // 체력이 기준값 이하이면 부상 레이어를 완전히 적용한다.
         var healthPercent = _health / _maxHealth;
-        var injured = Mathf.InverseLerp(0.5f, 0f, healthPercent); // 0 ~ 1
+        var injured = healthPercent <= InjuredHealthThreshold ? 1f : 0f;
         _animator.SetLayerWeight(_injuredLayerIndex, injured);
 
 
