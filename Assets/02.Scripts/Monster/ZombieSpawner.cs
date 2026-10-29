@@ -15,6 +15,9 @@ public class ZombieSpawner : MonoBehaviour
     [SerializeField] private float _spawnInterval = 3f; // 스폰 간격
     [SerializeField] private float _minDistanceFromPlayer = 15f; // 플레이어와의 최소 거리
 
+    [Header("개발")]
+    [SerializeField] private bool _spawnEnabled = true; // 개발 중 좀비 스폰을 임시로 끈다.
+
     private readonly List<Zombie> _aliveZombies = new();
     private readonly List<Transform> _candidatePoints = new();
     private Transform _player;
@@ -39,6 +42,11 @@ public class ZombieSpawner : MonoBehaviour
 
     private void Update()
     {
+        if (!_spawnEnabled)
+        {
+            return;
+        }
+
         if (GameManager.Instance.State != GameState.Playing)
         {
             return;
