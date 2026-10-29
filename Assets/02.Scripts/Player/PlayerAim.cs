@@ -2,32 +2,31 @@ using UnityEngine;
 
 namespace FpsGame.Player
 {
-    // 카메라 조준점을 Humanoid LookAt IK 목표로 전달한다.
-    [RequireComponent(typeof(Animator))]
+    // 총열의 위아래 방향을 카메라 조준점에 맞춘다.
+    [DefaultExecutionOrder(-100)]
     public sealed class PlayerAim : MonoBehaviour
     {
+        [SerializeField] private Transform _upperBody;
+        [SerializeField] private Transform _muzzle;
         [SerializeField] private float _aimDistance = 20f;
-        [SerializeField] private float _weight = 1f;
-        [SerializeField] private float _bodyWeight = 1f;
-        [SerializeField] private float _headWeight;
-        [SerializeField] private float _eyesWeight;
-        [SerializeField] private float _clampWeight = 0.5f;
 
-        private Animator _animator;
         private Transform _cameraTransform;
 
         private void Awake()
         {
-            _animator = GetComponent<Animator>();
             _cameraTransform = Camera.main.transform;
         }
 
-        private void OnAnimatorIK(int layerIndex)
+        private void LateUpdate()
         {
             Vector3 aimPosition = _cameraTransform.position + _cameraTransform.forward * _aimDistance;
+            Vector3 aimDirection = aimPosition - _muzzle.position;
+            Vector3 playerRight = transform.parent.right;
+            var muzzlePitchDirection = Vector3.ProjectOnPlane(_muzzle.forward, playerRight);
+            var aimPitchDirection = Vector3.ProjectOnPlane(aimDirection, playerRight);
+            var angle = Vector3.SignedAngle(muzzlePitchDirection, aimPitchDirection, playerRight);
 
-            _animator.SetLookAtWeight(_weight, _bodyWeight, _headWeight, _eyesWeight, _clampWeight);
-            _animator.SetLookAtPosition(aimPosition);
+            _upperBody.rotation = Quaternion.AngleAxis(angle, playerRight) * _upperBody.rotation;
         }
     }
 }
