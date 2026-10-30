@@ -45,12 +45,12 @@ namespace FpsGame.Player
 
             if (Input.GetButtonDown("Fire1"))
             {
-                _animator.SetTrigger(s_stabHash);
+                _animator.SetTrigger(s_slashHash);
             }
 
             if (Input.GetButtonDown("Fire2"))
             {
-                _animator.SetTrigger(s_slashHash);
+                _animator.SetTrigger(s_stabHash);
             }
         }
 
