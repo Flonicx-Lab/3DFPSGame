@@ -494,6 +494,7 @@ GameObject:
   - component: {fileID: 242614108}
   - component: {fileID: 242614107}
   - component: {fileID: 242614109}
+  - component: {fileID: 242614110}
   m_Layer: 0
   m_Name: Dagger
   m_TagString: Untagged
@@ -587,6 +588,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Player.DaggerGrip
   _reverseLocalPosition: {x: 0.1446, y: 0.0309, z: 0.101}
   _reverseLocalEulerAngles: {x: 330.2, y: 208.59, z: 263.1}
+--- !u!54 &242614110
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 242614105}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &264226774
 GameObject:
   m_ObjectHideFlags: 0
@@ -4331,19 +4359,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -5155794138756593122, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9999653
+      value: 0.99996537
       objectReference: {fileID: 0}
     - target: {fileID: -5155794138756593122, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.007518694
+      value: 0.0075186943
       objectReference: {fileID: 0}
     - target: {fileID: -5155794138756593122, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.003237553
+      value: 0.0032375532
       objectReference: {fileID: 0}
     - target: {fileID: -5155794138756593122, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.0015286058
+      value: 0.0015286059
       objectReference: {fileID: 0}
     - target: {fileID: -4521683848075653307, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4883,19 +4911,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2793527109276809210, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.8813423
+      value: 0.88134235
       objectReference: {fileID: 0}
     - target: {fileID: 2793527109276809210, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.19523591
+      value: -0.19523592
       objectReference: {fileID: 0}
     - target: {fileID: 2793527109276809210, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.0006152168
+      value: -0.00061521685
       objectReference: {fileID: 0}
     - target: {fileID: 2793527109276809210, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.43025374
+      value: 0.43025377
       objectReference: {fileID: 0}
     - target: {fileID: 2890340462180134544, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -5179,7 +5207,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6685254019915914499, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.76153684
+      value: -0.7615369
       objectReference: {fileID: 0}
     - target: {fileID: 6685254019915914499, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.x
@@ -5187,7 +5215,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6685254019915914499, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.13601567
+      value: 0.13601568
       objectReference: {fileID: 0}
     - target: {fileID: 6685254019915914499, guid: 333adb3e9f3eaed41aa9ca78e75057b0, type: 3}
       propertyPath: m_LocalRotation.z
@@ -5522,7 +5550,7 @@ MonoBehaviour:
   - {fileID: 77069497}
   _upperBody: {fileID: 1054765224}
   _eye: {fileID: 663921014}
-  _stabStrikePoint: {x: -0.606, y: 0.211, z: -0.723}
+  _stabStrikePoint: {x: -0.6970682, y: 0.2542912, z: -0.6014602}
   _slashStrikePoint: {x: -0.881, y: 0.646, z: -0.14}
   _blendTime: 0.22
 --- !u!1 &1098944003
