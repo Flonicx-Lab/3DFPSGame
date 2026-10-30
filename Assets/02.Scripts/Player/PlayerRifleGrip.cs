@@ -13,7 +13,6 @@ namespace FpsGame.Player
         [Header("소총")]
         [SerializeField] private Transform _rifle;
         [SerializeField] private Transform _carryAnchor;
-        [SerializeField] private float _carryBlendTime = 0.2f;
 
         [Header("손잡이")]
         [SerializeField] private Transform _rightHandGrip;
@@ -35,11 +34,7 @@ namespace FpsGame.Player
 
         private void Update()
         {
-            var targetWeight = IsThrowing() ? 1.0f : 0.0f;
-            _carryWeight = Mathf.MoveTowards(
-                _carryWeight,
-                targetWeight,
-                Time.deltaTime / _carryBlendTime);
+            _carryWeight = CalculateCarryWeight();
         }
 
         private void LateUpdate()
@@ -68,11 +63,29 @@ namespace FpsGame.Player
             _animator.SetIKPosition(AvatarIKGoal.LeftHand, _leftHandGrip.position);
         }
 
-        private bool IsThrowing()
+        private float CalculateCarryWeight()
         {
-            AnimatorStateInfo throwState = _animator.GetCurrentAnimatorStateInfo(ThrowLayerIndex);
-            return throwState.shortNameHash != s_emptyStateHash
-                || _animator.IsInTransition(ThrowLayerIndex);
+            AnimatorStateInfo currentState = _animator.GetCurrentAnimatorStateInfo(ThrowLayerIndex);
+            if (!_animator.IsInTransition(ThrowLayerIndex))
+            {
+                return currentState.shortNameHash == s_emptyStateHash ? 0.0f : 1.0f;
+            }
+
+            AnimatorStateInfo nextState = _animator.GetNextAnimatorStateInfo(ThrowLayerIndex);
+            AnimatorTransitionInfo transition = _animator.GetAnimatorTransitionInfo(ThrowLayerIndex);
+            var progress = Mathf.Clamp01(transition.normalizedTime);
+
+            if (nextState.shortNameHash == s_emptyStateHash)
+            {
+                return 1.0f - progress;
+            }
+
+            if (currentState.shortNameHash == s_emptyStateHash)
+            {
+                return progress;
+            }
+
+            return 1.0f;
         }
     }
 }
