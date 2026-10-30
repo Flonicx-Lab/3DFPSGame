@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace FpsGame.Editor
 {
-    // 애니메이션 상태를 처음부터 실제로 재생하며 시간별 화면과 자세 수치를 기록한다.
+    // 프레임마다 게임 시간을 고정해 애니메이션 상태의 화면과 자세 수치를 기록한다.
     public static class MotionSheet
     {
         private const int CellWidth = 480;
@@ -17,9 +17,8 @@ namespace FpsGame.Editor
         private const int DigitHeight = 5;
         private const int DigitScale = 2;
         private const int DigitSpacing = 1;
-        private const float CaptureTimeScale = 0.1f;
         private const float StateStartTimeout = 2f;
-        private const float CaptureTimeout = 60f;
+        private const float CaptureTimeout = 120f;
         private const float LastSampleThreshold = 0.99f;
 
         private static readonly Color32 s_trajectoryColor = new(255, 220, 0, 255);
@@ -70,6 +69,7 @@ namespace FpsGame.Editor
         private static int _columns;
         private static string _pngPath;
         private static string _csvPath;
+        private static float _savedCaptureDeltaTime;
         private static float _savedTimeScale;
         private static int _sampleIndex;
         private static float _clipLength;
@@ -78,6 +78,8 @@ namespace FpsGame.Editor
         private static int _lastObservedFrame;
         private static bool _stateStarted;
         private static bool _hasLastFrameSnapshot;
+        private static bool _isCaptureDeltaTimeConfigured;
+        private static bool _useStateLengthFallback;
         private static Snapshot _lastFrameSnapshot;
         private static bool _isCaptureActive;
 
@@ -116,11 +118,22 @@ namespace FpsGame.Editor
 
             try
             {
+                _savedCaptureDeltaTime = Time.captureDeltaTime;
                 _savedTimeScale = Time.timeScale;
-                Time.timeScale = CaptureTimeScale;
                 _isCaptureActive = true;
+                Time.timeScale = 1f;
                 EditorApplication.update += OnEditorUpdate;
                 _animator.Play(_stateName, _layer, 0f);
+
+                AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(_layer);
+                if (stateInfo.IsName(_stateName))
+                {
+                    ConfigureCaptureDeltaTime(stateInfo);
+                }
+                else
+                {
+                    _useStateLengthFallback = true;
+                }
             }
             catch
             {
@@ -216,6 +229,8 @@ namespace FpsGame.Editor
             _lastObservedFrame = -1;
             _stateStarted = false;
             _hasLastFrameSnapshot = false;
+            _isCaptureDeltaTimeConfigured = false;
+            _useStateLengthFallback = false;
             s_cellPixels.Clear();
             s_samples.Clear();
             CacheBones(animator);
@@ -290,6 +305,15 @@ namespace FpsGame.Editor
                     return;
                 }
 
+                if (!_isCaptureDeltaTimeConfigured)
+                {
+                    ConfigureCaptureDeltaTimeAfterPlay();
+                    if (!_isCaptureDeltaTimeConfigured)
+                    {
+                        return;
+                    }
+                }
+
                 if (_lastObservedFrame == Time.frameCount)
                 {
                     return;
@@ -314,6 +338,10 @@ namespace FpsGame.Editor
 
         private static void CaptureReachedSamples(float normalizedTime)
         {
+            Snapshot snapshot = default;
+            var hasSnapshot = false;
+            var capturedSampleCount = 0;
+
             while (_sampleIndex < _sampleCount - 1)
             {
                 var targetTime = _sampleIndex / (float)(_sampleCount - 1);
@@ -322,24 +350,39 @@ namespace FpsGame.Editor
                     break;
                 }
 
-                AddSnapshot(CaptureSnapshot(normalizedTime));
+                if (!hasSnapshot)
+                {
+                    snapshot = CaptureSnapshot(normalizedTime);
+                    hasSnapshot = true;
+                }
+
+                AddSnapshot(snapshot, _sampleIndex);
                 _sampleIndex++;
+                capturedSampleCount++;
             }
 
             if (_sampleIndex != _sampleCount - 1)
             {
+                LogOverlappingSamples(capturedSampleCount);
                 return;
             }
 
-            Snapshot snapshot = CaptureSnapshot(normalizedTime);
+            if (!hasSnapshot)
+            {
+                snapshot = CaptureSnapshot(normalizedTime);
+            }
+
             if (normalizedTime >= LastSampleThreshold)
             {
-                AddSnapshot(snapshot);
+                AddSnapshot(snapshot, _sampleIndex);
                 _sampleIndex++;
+                capturedSampleCount++;
+                LogOverlappingSamples(capturedSampleCount);
                 CompleteCapture();
                 return;
             }
 
+            LogOverlappingSamples(capturedSampleCount);
             _lastFrameSnapshot = snapshot;
             _hasLastFrameSnapshot = true;
         }
@@ -352,7 +395,7 @@ namespace FpsGame.Editor
                 return;
             }
 
-            AddSnapshot(_lastFrameSnapshot);
+            AddSnapshot(_lastFrameSnapshot, _sampleIndex);
             _sampleIndex++;
             CompleteCapture();
         }
@@ -406,10 +449,20 @@ namespace FpsGame.Editor
             };
         }
 
-        private static void AddSnapshot(Snapshot snapshot)
+        private static void AddSnapshot(Snapshot snapshot, int sampleIndex)
         {
-            s_samples.Add(snapshot.Sample);
-            s_cellPixels.Add(snapshot.Pixels);
+            Sample sample = snapshot.Sample;
+            sample.Number = sampleIndex + 1;
+            s_samples.Add(sample);
+            s_cellPixels.Add((Color32[])snapshot.Pixels.Clone());
+        }
+
+        private static void LogOverlappingSamples(int capturedSampleCount)
+        {
+            if (capturedSampleCount > 1)
+            {
+                Debug.LogWarning($"MotionSheet 샘플 목표 {capturedSampleCount}개가 같은 프레임에 겹쳤습니다.");
+            }
         }
 
         private static void CompleteCapture()
@@ -453,6 +506,46 @@ namespace FpsGame.Editor
             {
                 throw new InvalidOperationException("AnimationClip의 길이와 프레임레이트는 0보다 커야 합니다.");
             }
+        }
+
+        private static void ConfigureCaptureDeltaTimeAfterPlay()
+        {
+            AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(_layer);
+            if (!stateInfo.IsName(_stateName))
+            {
+                return;
+            }
+
+            if (_useStateLengthFallback)
+            {
+                SetCaptureDeltaTime(stateInfo.length);
+                return;
+            }
+
+            ConfigureCaptureDeltaTime(stateInfo);
+        }
+
+        private static void ConfigureCaptureDeltaTime(AnimatorStateInfo stateInfo)
+        {
+            CacheClipTiming();
+            var playbackSpeed = Mathf.Abs(stateInfo.speed * stateInfo.speedMultiplier);
+            if (Mathf.Approximately(playbackSpeed, 0f))
+            {
+                throw new InvalidOperationException("애니메이션 상태의 실제 재생 속도는 0보다 커야 합니다.");
+            }
+
+            SetCaptureDeltaTime(_clipLength / playbackSpeed);
+        }
+
+        private static void SetCaptureDeltaTime(float playbackLength)
+        {
+            if (playbackLength <= 0f)
+            {
+                throw new InvalidOperationException("애니메이션 상태의 실제 재생 길이는 0보다 커야 합니다.");
+            }
+
+            Time.captureDeltaTime = playbackLength / (_sampleCount * 4f);
+            _isCaptureDeltaTimeConfigured = true;
         }
 
         private static float CalculateMovementSpeed(Vector3 effectorWorldPosition)
@@ -816,6 +909,7 @@ namespace FpsGame.Editor
                 return;
             }
 
+            Time.captureDeltaTime = _savedCaptureDeltaTime;
             Time.timeScale = _savedTimeScale;
             _isCaptureActive = false;
             _animator = null;
