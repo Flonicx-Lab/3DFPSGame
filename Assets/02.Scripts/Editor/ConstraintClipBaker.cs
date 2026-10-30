@@ -119,6 +119,227 @@ namespace FpsGame.Editor
             SaveOutputClip(output, outputPath);
         }
 
+        public static void BakeLimbOffset(
+            AnimationClip source,
+            string outputPath,
+            Animator animator,
+            HumanBodyBones upperBone,
+            HumanBodyBones lowerBone,
+            HumanBodyBones endBone,
+            Transform reference,
+            Vector3 referenceOffset,
+            int rampInStart,
+            int holdStart,
+            int holdEnd,
+            int rampOutEnd)
+        {
+            ValidateLimbOffsetArguments(
+                source,
+                outputPath,
+                animator,
+                upperBone,
+                lowerBone,
+                endBone,
+                reference,
+                rampInStart,
+                holdStart,
+                holdEnd,
+                rampOutEnd);
+
+            AnimationCurve[] sourceRootPositionCurves = GetRequiredRootCurves(source, "RootT", 3);
+            AnimationCurve[] sourceRootRotationCurves = GetRequiredRootCurves(source, "RootQ", 4);
+            Transform upper = animator.GetBoneTransform(upperBone);
+            Transform lower = animator.GetBoneTransform(lowerBone);
+            Transform end = animator.GetBoneTransform(endBone);
+            Transform[] transforms = animator.GetComponentsInChildren<Transform>(true);
+            TransformState[] originalStates = CaptureStates(transforms);
+            var startedAnimationMode = !AnimationMode.InAnimationMode();
+
+            var lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
+            var keyCount = lastFrame + 1;
+            Keyframe[][] muscleKeys = CreateKeyArrays(HumanTrait.MuscleCount, keyCount);
+            Keyframe[][] rootPositionKeys = CreateKeyArrays(3, keyCount);
+            Keyframe[][] rootRotationKeys = CreateKeyArrays(4, keyCount);
+            var originPose = new HumanPose();
+            var editedPose = new HumanPose();
+
+            using (var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
+            {
+                try
+                {
+                    if (startedAnimationMode)
+                    {
+                        AnimationMode.StartAnimationMode();
+                    }
+
+                    for (var frame = 0; frame <= lastFrame; frame++)
+                    {
+                        var time = Mathf.Min(frame / source.frameRate, source.length);
+                        Sample(animator, source, time);
+                        poseHandler.GetHumanPose(ref originPose);
+
+                        var timeWeight = GetTimeWeight(
+                            frame,
+                            rampInStart,
+                            holdStart,
+                            holdEnd,
+                            rampOutEnd);
+                        Vector3 targetPosition = end.position
+                            + reference.TransformVector(referenceOffset) * timeWeight;
+                        if (timeWeight > 0f)
+                        {
+                            SolveTwoBoneIk(upper, lower, end, targetPosition);
+                        }
+
+                        var positionError = Vector3.Distance(targetPosition, end.position);
+                        poseHandler.GetHumanPose(ref editedPose);
+                        RecordPose(editedPose, time, frame, muscleKeys);
+                        RecordRootPose(
+                            originPose,
+                            editedPose,
+                            sourceRootPositionCurves,
+                            sourceRootRotationCurves,
+                            time,
+                            frame,
+                            rootPositionKeys,
+                            rootRotationKeys);
+                        Debug.Log(
+                            $"ConstraintClipBaker frame={frame}, w={timeWeight:F3}, positionError={positionError:F6}m");
+                    }
+                }
+                finally
+                {
+                    if (startedAnimationMode && AnimationMode.InAnimationMode())
+                    {
+                        AnimationMode.StopAnimationMode();
+                    }
+
+                    RestoreStates(transforms, originalStates);
+                }
+            }
+
+            AnimationClip output = CreateOutputClip(
+                source,
+                muscleKeys,
+                rootPositionKeys,
+                rootRotationKeys);
+            SaveOutputClip(output, outputPath);
+        }
+
+        private static void ValidateLimbOffsetArguments(
+            AnimationClip source,
+            string outputPath,
+            Animator animator,
+            HumanBodyBones upperBone,
+            HumanBodyBones lowerBone,
+            HumanBodyBones endBone,
+            Transform reference,
+            int rampInStart,
+            int holdStart,
+            int holdEnd,
+            int rampOutEnd)
+        {
+            HumanBodyBones[] chain = { upperBone, lowerBone, endBone };
+            float[] weights = { 1f, 1f, 1f };
+            ValidateArguments(
+                source,
+                outputPath,
+                animator,
+                reference,
+                reference,
+                Vector3.one,
+                chain,
+                weights,
+                rampInStart,
+                holdStart,
+                holdEnd,
+                rampOutEnd);
+
+            Transform[] bones = GetBones(animator, chain);
+            if (!bones[1].IsChildOf(bones[0]) || !bones[2].IsChildOf(bones[1]))
+            {
+                throw new ArgumentException("위, 아래, 끝 뼈는 순서대로 이어진 계층이어야 한다.");
+            }
+        }
+
+        private static void SolveTwoBoneIk(
+            Transform upper,
+            Transform lower,
+            Transform end,
+            Vector3 targetPosition)
+        {
+            Vector3 upperPosition = upper.position;
+            Vector3 lowerPosition = lower.position;
+            Vector3 endPosition = end.position;
+            Quaternion originalEndLocalRotation = end.localRotation;
+            var upperLength = Vector3.Distance(upperPosition, lowerPosition);
+            var lowerLength = Vector3.Distance(lowerPosition, endPosition);
+            if (upperLength <= Mathf.Epsilon || lowerLength <= Mathf.Epsilon)
+            {
+                throw new InvalidOperationException("두 관절 IK의 뼈 길이는 0보다 커야 한다.");
+            }
+
+            Vector3 targetDirection = targetPosition - upperPosition;
+            if (targetDirection.sqrMagnitude <= Mathf.Epsilon)
+            {
+                targetDirection = endPosition - upperPosition;
+            }
+
+            if (targetDirection.sqrMagnitude <= Mathf.Epsilon)
+            {
+                targetDirection = lowerPosition - upperPosition;
+            }
+
+            targetDirection.Normalize();
+            var minimumDistance = Mathf.Abs(upperLength - lowerLength);
+            var maximumDistance = (upperLength + lowerLength) * 0.999f;
+            var targetDistance = Mathf.Clamp(
+                Vector3.Distance(upperPosition, targetPosition),
+                minimumDistance,
+                maximumDistance);
+            Vector3 reachableTarget = upperPosition + targetDirection * targetDistance;
+            Vector3 desiredLowerPosition;
+            if (targetDistance <= Mathf.Epsilon)
+            {
+                desiredLowerPosition = upperPosition
+                    + (lowerPosition - upperPosition).normalized * upperLength;
+            }
+            else
+            {
+                var elbowDistance = (
+                    upperLength * upperLength
+                    - lowerLength * lowerLength
+                    + targetDistance * targetDistance) / (2f * targetDistance);
+                var elbowHeight = Mathf.Sqrt(Mathf.Max(
+                    0f,
+                    upperLength * upperLength - elbowDistance * elbowDistance));
+                Vector3 elbowHintDirection = lowerPosition - upperPosition;
+                elbowHintDirection -= Vector3.Dot(elbowHintDirection, targetDirection) * targetDirection;
+                if (elbowHintDirection.sqrMagnitude <= Mathf.Epsilon)
+                {
+                    elbowHintDirection = Vector3.Cross(targetDirection, upper.up);
+                }
+
+                if (elbowHintDirection.sqrMagnitude <= Mathf.Epsilon)
+                {
+                    elbowHintDirection = Vector3.Cross(targetDirection, upper.right);
+                }
+
+                elbowHintDirection.Normalize();
+                desiredLowerPosition = upperPosition
+                    + targetDirection * elbowDistance
+                    + elbowHintDirection * elbowHeight;
+            }
+
+            upper.rotation = Quaternion.FromToRotation(
+                lowerPosition - upperPosition,
+                desiredLowerPosition - upperPosition) * upper.rotation;
+            lower.rotation = Quaternion.FromToRotation(
+                end.position - lower.position,
+                reachableTarget - lower.position) * lower.rotation;
+            end.localRotation = originalEndLocalRotation;
+        }
+
         private static AnimationCurve[] GetRequiredRootCurves(
             AnimationClip source,
             string propertyPrefix,
@@ -489,12 +710,17 @@ namespace FpsGame.Editor
 
         private static void SaveOutputClip(AnimationClip output, string outputPath)
         {
-            if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(outputPath) != null)
+            AnimationClip existing = AssetDatabase.LoadAssetAtPath<AnimationClip>(outputPath);
+            if (existing != null)
             {
-                AssetDatabase.DeleteAsset(outputPath);
+                EditorUtility.CopySerialized(output, existing);
+                EditorUtility.SetDirty(existing);
+            }
+            else
+            {
+                AssetDatabase.CreateAsset(output, outputPath);
             }
 
-            AssetDatabase.CreateAsset(output, outputPath);
             AssetDatabase.SaveAssets();
         }
 
