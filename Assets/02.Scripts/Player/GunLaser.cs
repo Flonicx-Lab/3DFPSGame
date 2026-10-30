@@ -25,6 +25,7 @@ public class GunLaser : MonoBehaviour
             return;
         }
 
+        _line.SetPosition(0, transform.position);
         _hideTimer -= Time.deltaTime;
         if (_hideTimer <= 0f)
         {
