@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using FpsGame.Weapon;
 
 namespace FpsGame.Player
@@ -8,14 +9,15 @@ namespace FpsGame.Player
     {
         private const int DaggerLayerIndex = 4;
         private static readonly int s_stabHash = Animator.StringToHash("Stab");
-        private static readonly int s_slashHash = Animator.StringToHash("Slash");
+        private static readonly int s_fanAttackHash = Animator.StringToHash("Slash");
 
         [SerializeField] private GameObject _rifle;
         [SerializeField] private Dagger _dagger;
         [SerializeField] private PlayerAim _aim;
         [SerializeField] private PlayerDaggerAim _daggerAim;
         [SerializeField] private int _stabHitFrame = 32;
-        [SerializeField] private int _slashHitFrame = 20;
+        [FormerlySerializedAs("_slashHitFrame")]
+        [SerializeField] private int _fanAttackHitFrame = 20;
 
         private PlayerWeaponMode _weaponMode;
         private Animator _animator;
@@ -53,8 +55,8 @@ namespace FpsGame.Player
 
             if (Input.GetButtonDown("Fire1"))
             {
-                _animator.SetTrigger(s_slashHash);
-                SetPendingAttack(s_slashHash, _slashHitFrame);
+                _animator.SetTrigger(s_fanAttackHash);
+                SetPendingAttack(s_fanAttackHash, _fanAttackHitFrame);
             }
 
             if (Input.GetButtonDown("Fire2"))
@@ -78,16 +80,16 @@ namespace FpsGame.Player
                 return;
             }
 
-            float hitNormalizedTime = _pendingHitFrame / (clip.length * clip.frameRate);
+            var hitNormalizedTime = _pendingHitFrame / (clip.length * clip.frameRate);
             if (stateInfo.normalizedTime < hitNormalizedTime)
             {
                 return;
             }
 
             Transform cameraTransform = Camera.main.transform;
-            if (_pendingStateHash == s_slashHash)
+            if (_pendingStateHash == s_fanAttackHash)
             {
-                _dagger.Slash(cameraTransform.position, cameraTransform.forward);
+                _dagger.FanAttack(cameraTransform.position, cameraTransform.forward);
             }
             else
             {
@@ -124,7 +126,7 @@ namespace FpsGame.Player
 
         private void HandleModeChange(WeaponMode mode)
         {
-            bool isDaggerMode = mode == WeaponMode.Dagger;
+            var isDaggerMode = mode == WeaponMode.Dagger;
             _rifle.SetActive(!isDaggerMode);
             _dagger.gameObject.SetActive(isDaggerMode);
             _aim.enabled = !isDaggerMode;
