@@ -10,7 +10,7 @@ namespace FpsGame.Editor
 {
     public static class AnimationProbe
     {
-        private static readonly Dictionary<Mesh, Dictionary<int, int>> HiltVertexCache =
+        private static readonly Dictionary<Mesh, Dictionary<int, int>> s_hiltVertexCache =
             new Dictionary<Mesh, Dictionary<int, int>>();
 
         public static string Measure(
@@ -86,21 +86,21 @@ namespace FpsGame.Editor
             AvatarMask additiveMask,
             float time)
         {
-            PlayableGraph graph = PlayableGraph.Create("AnimationProbe");
+            var graph = PlayableGraph.Create("AnimationProbe");
             try
             {
                 graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
 
-                int inputCount = additiveClip == null ? 1 : 2;
-                AnimationLayerMixerPlayable mixer = AnimationLayerMixerPlayable.Create(graph, inputCount);
-                AnimationClipPlayable basePlayable = AnimationClipPlayable.Create(graph, baseClip);
+                var inputCount = additiveClip == null ? 1 : 2;
+                var mixer = AnimationLayerMixerPlayable.Create(graph, inputCount);
+                var basePlayable = AnimationClipPlayable.Create(graph, baseClip);
                 basePlayable.SetTime(time);
                 graph.Connect(basePlayable, 0, mixer, 0);
                 mixer.SetInputWeight(0, 1f);
 
                 if (additiveClip != null)
                 {
-                    AnimationClipPlayable additivePlayable = AnimationClipPlayable.Create(graph, additiveClip);
+                    var additivePlayable = AnimationClipPlayable.Create(graph, additiveClip);
                     additivePlayable.SetTime(time);
                     graph.Connect(additivePlayable, 0, mixer, 1);
                     mixer.SetInputWeight(1, 1f);
@@ -108,7 +108,7 @@ namespace FpsGame.Editor
                     mixer.SetLayerMaskFromAvatarMask(1, additiveMask);
                 }
 
-                AnimationPlayableOutput output = AnimationPlayableOutput.Create(graph, "AnimationProbeOutput", animator);
+                var output = AnimationPlayableOutput.Create(graph, "AnimationProbeOutput", animator);
                 output.SetSourcePlayable(mixer);
                 return graph;
             }
@@ -135,7 +135,7 @@ namespace FpsGame.Editor
             Transform elbow = RequireBone(animator, HumanBodyBones.RightLowerArm);
             Transform hand = RequireBone(animator, HumanBodyBones.RightHand);
 
-            int hiltVertex = GetHiltVertex(mesh, tipVertex);
+            var hiltVertex = GetHiltVertex(mesh, tipVertex);
             Vector3[] vertices = mesh.vertices;
             Vector3 tipPosition = weaponMesh.transform.TransformPoint(vertices[tipVertex]);
             Vector3 hiltPosition = weaponMesh.transform.TransformPoint(vertices[hiltVertex]);
@@ -147,7 +147,7 @@ namespace FpsGame.Editor
             }
 
             forward.Normalize();
-            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            var right = Vector3.Cross(Vector3.up, forward);
             if (right.sqrMagnitude <= Mathf.Epsilon)
             {
                 throw new InvalidOperationException("시선 방향이 월드 위 방향과 나란해 시선 기준을 만들 수 없습니다.");
@@ -157,16 +157,16 @@ namespace FpsGame.Editor
             Vector3 up = Vector3.Cross(forward, right).normalized;
             Vector3 forearmDirection = (hand.position - elbow.position).normalized;
             Vector3 bladeDirection = (tipPosition - hiltPosition).normalized;
-            float forearmUp = Vector3.Dot(forearmDirection, up);
-            float bladeLeft = -Vector3.Dot(bladeDirection, right);
-            float elbowAngle = Vector3.Angle(shoulder.position - elbow.position, hand.position - elbow.position);
+            var forearmUp = Vector3.Dot(forearmDirection, up);
+            var bladeLeft = -Vector3.Dot(bladeDirection, right);
+            var elbowAngle = Vector3.Angle(shoulder.position - elbow.position, hand.position - elbow.position);
 
             Vector3 eyeToHand = hand.position - eye.position;
-            float handRight = Vector3.Dot(eyeToHand, right);
-            float handUp = Vector3.Dot(eyeToHand, up);
-            float handForward = Vector3.Dot(eyeToHand, forward);
-            float yaw = Mathf.Atan2(handRight, handForward) * Mathf.Rad2Deg;
-            float pitch = Mathf.Atan2(handUp, Mathf.Sqrt((handRight * handRight) + (handForward * handForward))) * Mathf.Rad2Deg;
+            var handRight = Vector3.Dot(eyeToHand, right);
+            var handUp = Vector3.Dot(eyeToHand, up);
+            var handForward = Vector3.Dot(eyeToHand, forward);
+            var yaw = Mathf.Atan2(handRight, handForward) * Mathf.Rad2Deg;
+            var pitch = Mathf.Atan2(handUp, Mathf.Sqrt((handRight * handRight) + (handForward * handForward))) * Mathf.Rad2Deg;
             Vector3 tipLocal = reference.InverseTransformPoint(tipPosition);
 
             return string.Format(
@@ -184,25 +184,25 @@ namespace FpsGame.Editor
 
         private static int GetHiltVertex(Mesh mesh, int tipVertex)
         {
-            if (!HiltVertexCache.TryGetValue(mesh, out Dictionary<int, int> meshCache))
+            if (!s_hiltVertexCache.TryGetValue(mesh, out Dictionary<int, int> meshCache))
             {
                 meshCache = new Dictionary<int, int>();
-                HiltVertexCache.Add(mesh, meshCache);
+                s_hiltVertexCache.Add(mesh, meshCache);
             }
 
-            if (meshCache.TryGetValue(tipVertex, out int cachedVertex))
+            if (meshCache.TryGetValue(tipVertex, out var cachedVertex))
             {
                 return cachedVertex;
             }
 
             Vector3[] vertices = mesh.vertices;
             Vector3 tip = vertices[tipVertex];
-            int farthestVertex = 0;
-            float farthestDistance = -1f;
+            var farthestVertex = 0;
+            var farthestDistance = -1f;
 
-            for (int index = 0; index < vertices.Length; index++)
+            for (var index = 0; index < vertices.Length; index++)
             {
-                float distance = (vertices[index] - tip).sqrMagnitude;
+                var distance = (vertices[index] - tip).sqrMagnitude;
                 if (distance > farthestDistance)
                 {
                     farthestDistance = distance;
