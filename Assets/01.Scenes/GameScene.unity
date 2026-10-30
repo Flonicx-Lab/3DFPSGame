@@ -495,6 +495,7 @@ GameObject:
   - component: {fileID: 242614107}
   - component: {fileID: 242614109}
   - component: {fileID: 242614110}
+  - component: {fileID: 242614111}
   m_Layer: 0
   m_Name: Dagger
   m_TagString: Untagged
@@ -615,6 +616,29 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &242614111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 242614105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fab6deb5c52495c45aeaf9731ada67cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Weapon.Dagger
+  _damage: 20
+  _stabDamageMultiplier: 1.5
+  _stabReach: 1.5
+  _fanAttackReach: 2
+  _fanAttackAngle: 90
+  _hitLayers:
+    serializedVersion: 2
+    m_Bits: 3575
+  _wallLayers:
+    serializedVersion: 2
+    m_Bits: 4096
 --- !u!1 &264226774
 GameObject:
   m_ObjectHideFlags: 0
@@ -2473,6 +2497,71 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 41f8fb7c9901cd04f81420884bff9bcd, type: 3}
+--- !u!1001 &598070316
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4123646173448588275, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_Name
+      value: EliteZombie
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5795467725881687619, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7090844795296229553, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7090844795296229553, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 646c03b5bc179834abd737972d1c8d62, type: 3}
 --- !u!1 &605552773
 GameObject:
   m_ObjectHideFlags: 0
@@ -2928,7 +3017,7 @@ GameObject:
   - component: {fileID: 687103734}
   - component: {fileID: 687103733}
   - component: {fileID: 687103732}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8959,7 +9048,7 @@ MonoBehaviour:
   _range: 100
   _hitLayers:
     serializedVersion: 2
-    m_Bits: 3575
+    m_Bits: 7671
   _damage: 10
   _fireInterval: 0.1
   _maxAmmo: 50
@@ -9041,18 +9130,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Player.PlayerDagger
   _rifle: {fileID: 1098944003}
-  _dagger: {fileID: 242614105}
+  _dagger: {fileID: 242614111}
   _aim: {fileID: 1054765229}
   _daggerAim: {fileID: 1054765232}
-  _damage: 20
-  _stabDamageMultiplier: 1.5
   _stabHitFrame: 32
-  _slashHitFrame: 24
-  _stabReach: 1.5
-  _slashReach: 2
-  _hitLayers:
-    serializedVersion: 2
-    m_Bits: 3575
+  _fanAttackHitFrame: 24
 --- !u!1 &2077531070
 GameObject:
   m_ObjectHideFlags: 0
@@ -9369,3 +9451,4 @@ SceneRoots:
   - {fileID: 1271314609}
   - {fileID: 629521136}
   - {fileID: 156277832}
+  - {fileID: 598070316}
