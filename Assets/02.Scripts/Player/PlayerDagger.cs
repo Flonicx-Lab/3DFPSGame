@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FpsGame.Player
 {
@@ -17,7 +18,9 @@ namespace FpsGame.Player
         [SerializeField] private float _stabDamageMultiplier = 1.5f;
         [SerializeField] private int _stabHitFrame = 32;
         [SerializeField] private int _slashHitFrame = 20;
-        [SerializeField] private float _reach = 1.5f;
+        [FormerlySerializedAs("_reach")]
+        [SerializeField] private float _stabReach = 1.5f;
+        [SerializeField] private float _slashReach = 2f;
         [SerializeField] private LayerMask _hitLayers;
 
         private PlayerWeaponMode _weaponMode;
@@ -25,6 +28,7 @@ namespace FpsGame.Player
         private int _pendingStateHash;
         private int _pendingHitFrame;
         private float _pendingDamage;
+        private float _pendingReach;
         private bool _hasPendingAttack;
 
         private void Awake()
@@ -58,21 +62,22 @@ namespace FpsGame.Player
             if (Input.GetButtonDown("Fire1"))
             {
                 _animator.SetTrigger(s_slashHash);
-                SetPendingAttack(s_slashHash, _slashHitFrame, _damage);
+                SetPendingAttack(s_slashHash, _slashHitFrame, _damage, _slashReach);
             }
 
             if (Input.GetButtonDown("Fire2"))
             {
                 _animator.SetTrigger(s_stabHash);
-                SetPendingAttack(s_stabHash, _stabHitFrame, _damage * _stabDamageMultiplier);
+                SetPendingAttack(s_stabHash, _stabHitFrame, _damage * _stabDamageMultiplier, _stabReach);
             }
         }
 
-        private void SetPendingAttack(int stateHash, int hitFrame, float damage)
+        private void SetPendingAttack(int stateHash, int hitFrame, float damage, float reach)
         {
             _pendingStateHash = stateHash;
             _pendingHitFrame = hitFrame;
             _pendingDamage = damage;
+            _pendingReach = reach;
             _hasPendingAttack = true;
         }
 
@@ -91,7 +96,7 @@ namespace FpsGame.Player
 
             Transform cameraTransform = Camera.main.transform;
             var ray = new Ray(cameraTransform.position, cameraTransform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hitInfo, _reach, _hitLayers) &&
+            if (Physics.Raycast(ray, out RaycastHit hitInfo, _pendingReach, _hitLayers) &&
                 hitInfo.collider.TryGetComponent(out IDamagable damagable))
             {
                 var damageInfo = new DamageInfo
