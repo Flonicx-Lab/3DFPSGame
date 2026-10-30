@@ -37,6 +37,7 @@ public class Bomb : MonoBehaviour
             LeanPool.Despawn(effect.gameObject, ExplosionEffectReturnDelay);
         }
         AudioSource.PlayClipAtPoint(_explosionClip, transform.position);
+        ApplyAreaDamage();
 
         // 2. 폭탄 본체 풀 반환
         LeanPool.Despawn(gameObject);
@@ -49,13 +50,18 @@ public class Bomb : MonoBehaviour
 
         foreach (Collider col in colliders)
         {
+            if (!col.TryGetComponent(out IDamagable damagable))
+            {
+                continue;
+            }
+
             DamageInfo damageInfo = new()
             {
                 Value = _explosionDamage,
                 HitPoint = col.ClosestPoint(transform.position),
                 HitNormal = (transform.position - col.ClosestPoint(transform.position)).normalized
             };
-            col.GetComponent<IDamagable>().TakeDamage(damageInfo);
+            damagable.TakeDamage(damageInfo);
         }
     }
 }
