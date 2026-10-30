@@ -23,6 +23,8 @@ namespace FpsGame.Player
         private Quaternion _shoulderLocalRotation;
         private float _carryWeight;
 
+        public bool IsShouldered => _carryWeight == 0.0f;
+
         public float ShoulderWeight => 1.0f - _carryWeight;
 
         private void Awake()

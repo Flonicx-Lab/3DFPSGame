@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using FpsGame.Player;
 using Lean.Pool;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -37,12 +38,14 @@ public class PlayerGunFire : MonoBehaviour
 
     private Awaitable _reloadAwaitable;
     private Animator _animator;
+    private PlayerRifleGrip _rifleGrip;
     private PlayerWeaponMode _weaponMode;
 
     private void Awake()
     {
         _currentAmmo = _maxAmmo;
         _animator = GetComponentInChildren<Animator>();
+        _rifleGrip = GetComponentInChildren<PlayerRifleGrip>();
         _weaponMode = GetComponent<PlayerWeaponMode>();
     }
 
@@ -69,7 +72,8 @@ public class PlayerGunFire : MonoBehaviour
         }
 
         // 2. 마우스 왼쪽 버튼 입력 받기 (재장전 중이 아니고 탄약이 있을 때만 발사)
-        var isFireInputActive = !Cursor.visible && Input.GetButton("Fire1") && _currentAmmo > 0;
+        var isFireInputActive =
+            _rifleGrip.IsShouldered && !Cursor.visible && Input.GetButton("Fire1") && _currentAmmo > 0;
         _animator.SetBool(s_fireHash, isFireInputActive);
 
         if (isFireInputActive && _fireTimer <= 0f)
