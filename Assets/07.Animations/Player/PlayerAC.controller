@@ -508,6 +508,27 @@ AnimatorController:
     m_IKPass: 1
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
+  - serializedVersion: 5
+    m_Name: Dagger Additive Layer
+    m_StateMachine: {fileID: 5936681389192592527}
+    m_Mask: {fileID: 31900000, guid: a5d4cddb77960dc49853f3791b5d520a, type: 2}
+    m_Motions:
+    - serializedVersion: 2
+      m_State: {fileID: 124192902606210498}
+      m_Motion: {fileID: 7400000, guid: fd5e9d19dd12a824ebca05f0643e5697, type: 2}
+    - serializedVersion: 2
+      m_State: {fileID: 723555150501383030}
+      m_Motion: {fileID: 7400000, guid: c95968df4a9d5514d991ebaee2821c28, type: 2}
+    - serializedVersion: 2
+      m_State: {fileID: -357622510843805480}
+      m_Motion: {fileID: 7400000, guid: fd5e9d19dd12a824ebca05f0643e5697, type: 2}
+    m_Behaviours: []
+    m_BlendingMode: 1
+    m_SyncedLayerIndex: 4
+    m_DefaultWeight: 1
+    m_IKPass: 0
+    m_SyncedLayerAffectsTiming: 0
+    m_Controller: {fileID: 9100000}
 --- !u!1102 &124192902606210498
 AnimatorState:
   serializedVersion: 6
@@ -558,7 +579,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: c7f90c9db01b4b44fa9f08acfc8615d4, type: 2}
+  m_Motion: {fileID: -203655887218126122, guid: 74c258dfb4541724d8983d3a91b5dee4, type: 3}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -754,6 +775,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 850583acbb34a3944b2c00ff66810ee2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FpsGame.Player.ReverseGripState
+--- !u!1107 &5936681389192592527
+AnimatorStateMachine:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Dagger Additive Layer
+  m_ChildStates: []
+  m_ChildStateMachines: []
+  m_AnyStateTransitions: []
+  m_EntryTransitions: []
+  m_StateMachineTransitions: {}
+  m_StateMachineBehaviours: []
+  m_AnyStatePosition: {x: 50, y: 20, z: 0}
+  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
+  m_DefaultState: {fileID: 0}
 --- !u!1102 &6788391144966048094
 AnimatorState:
   serializedVersion: 6
