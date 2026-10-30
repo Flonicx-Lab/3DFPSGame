@@ -11,11 +11,13 @@ namespace FpsGame.Player
         [SerializeField] private Transform _muzzle;
         [SerializeField] private float _aimDistance = 20f;
         [SerializeField] private float _kickAngle = 3f; // 한 발에 더하는 반동 각도다.
+        [SerializeField] private float _kickYawAngle = 0.8f; // 한 발 좌우 반동의 최대 각도다.
         [SerializeField] private float _kickRecoverSpeed = 25f; // 클수록 반동이 빠르게 돌아온다.
 
         private PlayerRifleGrip _rifleGrip;
         private Transform _cameraTransform;
         private float _currentKickAngle;
+        private float _currentKickYawAngle;
 
         private void Awake()
         {
@@ -39,8 +41,18 @@ namespace FpsGame.Player
                     _cameraTransform.right)
                 * _upperBody.rotation;
 
+            _upperBody.rotation = Quaternion.AngleAxis(
+                    _currentKickYawAngle * _rifleGrip.ShoulderWeight,
+                    _cameraTransform.up)
+                * _upperBody.rotation;
+
             _currentKickAngle = Mathf.Lerp(
                 _currentKickAngle,
+                0f,
+                1f - Mathf.Exp(-_kickRecoverSpeed * Time.deltaTime));
+
+            _currentKickYawAngle = Mathf.Lerp(
+                _currentKickYawAngle,
                 0f,
                 1f - Mathf.Exp(-_kickRecoverSpeed * Time.deltaTime));
         }
@@ -48,6 +60,7 @@ namespace FpsGame.Player
         public void Kick()
         {
             _currentKickAngle += _kickAngle;
+            _currentKickYawAngle += Random.Range(-_kickYawAngle, _kickYawAngle);
         }
     }
 }
