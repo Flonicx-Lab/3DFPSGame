@@ -179,7 +179,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
     public void Die()
     {
-        StopBloodSprays();
         ChangeState(ZombieState.Die);
         OnDied?.Invoke(this);
     }
@@ -323,15 +322,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _agent.enabled = false;
         _collider.enabled = false;
         SetHitboxesEnabled(false);
-    }
-
-    // 새 분출만 멈추고 날아가는 입자는 수명을 다하게 둬서 피가 갑자기 끊기지 않게 한다.
-    private void StopBloodSprays()
-    {
-        foreach (ParticleSystem bloodSpray in GetComponentsInChildren<ParticleSystem>())
-        {
-            bloodSpray.Stop(false, ParticleSystemStopBehavior.StopEmitting);
-        }
     }
 
     private void SetHitboxesEnabled(bool isEnabled)
