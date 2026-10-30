@@ -8,6 +8,7 @@ using UnityEngine.Playables;
 
 namespace FpsGame.Editor
 {
+    // 에디트 모드에서 PlayableGraph를 통해 지정 시간의 애니메이션 자세와 무기 위치를 측정한다.
     public static class AnimationProbe
     {
         private static readonly Dictionary<Mesh, Dictionary<int, int>> s_hiltVertexCache =
@@ -58,7 +59,6 @@ namespace FpsGame.Editor
             try
             {
                 graph = CreateGraph(animator, baseClip, additiveClip, additiveMask, time);
-                graph.Play();
                 graph.Evaluate(0f);
 
                 weapon.localPosition = weaponLocalPosition;
@@ -76,6 +76,7 @@ namespace FpsGame.Editor
                 weapon.localPosition = originalLocalPosition;
                 weapon.localRotation = originalLocalRotation;
                 animator.Rebind();
+                animator.Update(0f);
             }
         }
 
@@ -89,27 +90,36 @@ namespace FpsGame.Editor
             var graph = PlayableGraph.Create("AnimationProbe");
             try
             {
-                graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                var output = AnimationPlayableOutput.Create(graph, "AnimationProbeOutput", animator);
 
                 var inputCount = additiveClip == null ? 1 : 2;
                 var mixer = AnimationLayerMixerPlayable.Create(graph, inputCount);
+
                 var basePlayable = AnimationClipPlayable.Create(graph, baseClip);
-                basePlayable.SetTime(time);
                 graph.Connect(basePlayable, 0, mixer, 0);
                 mixer.SetInputWeight(0, 1f);
 
+                AnimationClipPlayable additivePlayable = default;
                 if (additiveClip != null)
                 {
-                    var additivePlayable = AnimationClipPlayable.Create(graph, additiveClip);
-                    additivePlayable.SetTime(time);
+                    additivePlayable = AnimationClipPlayable.Create(graph, additiveClip);
                     graph.Connect(additivePlayable, 0, mixer, 1);
                     mixer.SetInputWeight(1, 1f);
                     mixer.SetLayerAdditive(1, true);
                     mixer.SetLayerMaskFromAvatarMask(1, additiveMask);
                 }
 
-                var output = AnimationPlayableOutput.Create(graph, "AnimationProbeOutput", animator);
                 output.SetSourcePlayable(mixer);
+
+                basePlayable.SetTime(time);
+                basePlayable.SetTime(time);
+
+                if (additiveClip != null)
+                {
+                    additivePlayable.SetTime(time);
+                    additivePlayable.SetTime(time);
+                }
+
                 return graph;
             }
             catch
