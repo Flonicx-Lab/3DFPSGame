@@ -5550,7 +5550,7 @@ MonoBehaviour:
   - {fileID: 77069497}
   _upperBody: {fileID: 1054765224}
   _eye: {fileID: 663921014}
-  _stabStrikePoint: {x: -0.127, y: 0.694, z: -0.414}
+  _stabStrikePoint: {x: -0.092, y: 0.627, z: -0.57}
   _slashStrikePoint: {x: -0.881, y: 0.646, z: -0.14}
   _blendTime: 0.22
 --- !u!1 &1098944003
