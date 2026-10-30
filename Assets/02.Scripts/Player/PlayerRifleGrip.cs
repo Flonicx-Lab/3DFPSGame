@@ -24,6 +24,8 @@ namespace FpsGame.Player
         private Quaternion _shoulderLocalRotation;
         private float _carryWeight;
 
+        public float ShoulderWeight => 1.0f - _carryWeight;
+
         private void Awake()
         {
             _animator = GetComponent<Animator>();
