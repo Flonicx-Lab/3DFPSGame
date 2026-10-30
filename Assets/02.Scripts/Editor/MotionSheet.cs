@@ -125,8 +125,7 @@ namespace FpsGame.Editor
                 EditorApplication.update += OnEditorUpdate;
                 _animator.Play(_stateName, _layer, 0f);
 
-                AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(_layer);
-                if (stateInfo.IsName(_stateName))
+                if (TryGetTargetStateInfo(out AnimatorStateInfo stateInfo, out _))
                 {
                     ConfigureCaptureDeltaTime(stateInfo);
                 }
@@ -283,8 +282,7 @@ namespace FpsGame.Editor
                     return;
                 }
 
-                AnimatorStateInfo stateInfo = GetObservedStateInfo();
-                var isTargetState = stateInfo.IsName(_stateName);
+                var isTargetState = TryGetTargetStateInfo(out AnimatorStateInfo stateInfo, out _);
                 if (!_stateStarted)
                 {
                     if (!isTargetState)
@@ -329,11 +327,25 @@ namespace FpsGame.Editor
             }
         }
 
-        private static AnimatorStateInfo GetObservedStateInfo()
+        private static bool TryGetTargetStateInfo(
+            out AnimatorStateInfo stateInfo,
+            out bool isNextState)
         {
-            return _animator.IsInTransition(_layer)
-                ? _animator.GetNextAnimatorStateInfo(_layer)
-                : _animator.GetCurrentAnimatorStateInfo(_layer);
+            stateInfo = _animator.GetCurrentAnimatorStateInfo(_layer);
+            isNextState = false;
+            if (stateInfo.IsName(_stateName))
+            {
+                return true;
+            }
+
+            if (!_animator.IsInTransition(_layer))
+            {
+                return false;
+            }
+
+            stateInfo = _animator.GetNextAnimatorStateInfo(_layer);
+            isNextState = true;
+            return stateInfo.IsName(_stateName);
         }
 
         private static void CaptureReachedSamples(float normalizedTime)
@@ -482,10 +494,14 @@ namespace FpsGame.Editor
 
         private static void CacheClipTiming()
         {
-            AnimatorClipInfo[] clipInfos = _animator.IsInTransition(_layer)
-                && _animator.GetNextAnimatorStateInfo(_layer).IsName(_stateName)
-                    ? _animator.GetNextAnimatorClipInfo(_layer)
-                    : _animator.GetCurrentAnimatorClipInfo(_layer);
+            if (!TryGetTargetStateInfo(out _, out var isNextState))
+            {
+                throw new InvalidOperationException("지정한 애니메이션 상태가 재생 중이 아닙니다.");
+            }
+
+            AnimatorClipInfo[] clipInfos = isNextState
+                ? _animator.GetNextAnimatorClipInfo(_layer)
+                : _animator.GetCurrentAnimatorClipInfo(_layer);
             if (clipInfos.Length == 0)
             {
                 throw new InvalidOperationException("지정한 상태에서 재생 중인 AnimationClip을 찾을 수 없습니다.");
@@ -510,8 +526,7 @@ namespace FpsGame.Editor
 
         private static void ConfigureCaptureDeltaTimeAfterPlay()
         {
-            AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(_layer);
-            if (!stateInfo.IsName(_stateName))
+            if (!TryGetTargetStateInfo(out AnimatorStateInfo stateInfo, out _))
             {
                 return;
             }
