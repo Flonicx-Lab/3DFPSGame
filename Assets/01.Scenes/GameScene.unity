@@ -9036,6 +9036,14 @@ MonoBehaviour:
   _dagger: {fileID: 242614105}
   _aim: {fileID: 1054765229}
   _daggerAim: {fileID: 1054765232}
+  _damage: 20
+  _stabDamageMultiplier: 1.5
+  _stabHitFrame: 32
+  _slashHitFrame: 20
+  _reach: 1.5
+  _hitLayers:
+    serializedVersion: 2
+    m_Bits: 3575
 --- !u!1 &2077531070
 GameObject:
   m_ObjectHideFlags: 0
