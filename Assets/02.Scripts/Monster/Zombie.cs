@@ -47,9 +47,14 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     [Header("이펙트")]
     [SerializeField] private GameObject _bloodSprayPrefab;
     [SerializeField] private float _bloodSprayReturnDelay = 1f;
+
+    [Header("엘리트")]
+    [SerializeField] private bool _superArmor = false; // 켜면 맞아도 멈칫하지 않는다.
+    [SerializeField] private float _smashRadius = 0f; // 0보다 크면 공격할 때 이 반경 안을 모두 내려찍는다. (m)
+    [SerializeField] private ParticleSystem _smashEffectPrefab; // 내려찍을 때 발밑에서 퍼지는 먼지
+
     private GameObject _player;
     private Vector3 _startPosition;
-
     private readonly Dictionary<ZombieState, IZombieState> _states = new();
     private ZombiePatrolState _patrolState;
     private IZombieState _currentState;
@@ -89,6 +94,14 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _states[ZombieState.Hit] = new ZombieHitState(this);
         _states[ZombieState.Die] = new ZombieDieState(this);
         _states[ZombieState.Jump] = new ZombieJumpState(this);
+    }
+
+    private void Start()
+    {
+        if (_currentState == null)
+        {
+            OnSpawn();
+        }
     }
 
     // 풀에서 꺼내질 때마다 처음 상태로 되돌린다.
@@ -138,6 +151,51 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
         _currentState.Enter();
     }
 
+    public void OnAttackHit()
+    {
+        if (_smashRadius > 0f && _state != ZombieState.Die)
+        {
+            return;
+        }
+
+        if (_state != ZombieState.Attack ||
+            Vector3.Distance(transform.position, _player.transform.position) > _attackRange)
+        {
+            return;
+        }
+
+        var damage = new DamageInfo
+        {
+            Value = _attackDamage,
+            HitPoint = _player.transform.position,
+            HitNormal = (transform.position - _player.transform.position).normalized,
+        };
+        _player.GetComponent<IDamagable>()?.TakeDamage(damage);
+    }
+
+    private void Smash()
+    {
+        ParticleSystem effect = Instantiate(_smashEffectPrefab);
+        effect.transform.position = transform.position + Vector3.down * _agent.baseOffset;
+
+        Collider[] targets =
+            Physics.OverlapSphere(transform.position, _smashRadius, LayerMask.GetMask("Player", "Drum"));
+        foreach (Collider target in targets)
+        {
+            if (target.TryGetComponent(out IDamagable damageable))
+            {
+                var damage = new DamageInfo
+                {
+                    Value = _attackDamage,
+                    HitPoint = target.bounds.ClosestPoint(transform.position), // 대상에서 엘리트에 가장 가까운 점
+                    HitNormal = (transform.position - target.transform.position).normalized, // 엘리트 쪽
+
+                };
+                damageable.TakeDamage(damage);
+            }
+        }
+    }
+
     // 부위 정보가 없는 범위 데미지는 루트 캡슐로 들어온다.
     public void TakeDamage(DamageInfo damageInfo)
     {
@@ -170,7 +228,22 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
         if (_health > 0f)
         {
-            ChangeState(ZombieState.Hit);
+            if (_superArmor)
+            {
+                if (_state == ZombieState.Idle || _state == ZombieState.Comeback)
+                {
+                    Debug.Log($"{_state} -> Trace");
+                    ChangeState(ZombieState.Trace);
+                }
+            }
+            else
+            {
+                StopAllCoroutines();
+                StopMovement();
+                Debug.Log($"{_state} -> Hit");
+                ChangeState(ZombieState.Hit);
+            }
+
             return;
         }
 
