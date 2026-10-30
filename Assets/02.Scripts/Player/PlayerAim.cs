@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace FpsGame.Player
 {
-    // 소총을 겨눈 동안 총열의 위아래 방향을 카메라 조준점에 맞춘다.
+    // 소총을 겨눈 동안 총열의 위아래와 좌우 방향을 카메라 조준점에 맞춘다.
     [RequireComponent(typeof(PlayerRifleGrip))]
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerAim : MonoBehaviour
@@ -24,12 +24,11 @@ namespace FpsGame.Player
         {
             Vector3 aimPosition = _cameraTransform.position + _cameraTransform.forward * _aimDistance;
             Vector3 aimDirection = aimPosition - _muzzle.position;
-            Vector3 playerRight = transform.parent.right;
-            var muzzlePitchDirection = Vector3.ProjectOnPlane(_muzzle.forward, playerRight);
-            var aimPitchDirection = Vector3.ProjectOnPlane(aimDirection, playerRight);
-            var angle = Vector3.SignedAngle(muzzlePitchDirection, aimPitchDirection, playerRight);
 
-            _upperBody.rotation = Quaternion.AngleAxis(angle * _rifleGrip.ShoulderWeight, playerRight)
+            _upperBody.rotation = Quaternion.Slerp(
+                    Quaternion.identity,
+                    Quaternion.FromToRotation(_muzzle.forward, aimDirection),
+                    _rifleGrip.ShoulderWeight)
                 * _upperBody.rotation;
         }
     }
