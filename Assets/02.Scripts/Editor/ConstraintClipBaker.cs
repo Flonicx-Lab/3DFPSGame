@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 
@@ -234,6 +235,247 @@ namespace FpsGame.Editor
             SaveOutputClip(output, outputPath);
         }
 
+        public static string BakeArmInEyeFrame(
+            AnimationClip source,
+            AnimationClip bodyClip,
+            float bodyTime,
+            string outputPath,
+            Animator animator,
+            Transform eye)
+        {
+            ValidateArmInEyeFrameArguments(
+                source,
+                bodyClip,
+                bodyTime,
+                outputPath,
+                animator,
+                eye);
+
+            Transform upper = GetRequiredBone(animator, HumanBodyBones.RightUpperArm);
+            Transform lower = GetRequiredBone(animator, HumanBodyBones.RightLowerArm);
+            Transform hand = GetRequiredBone(animator, HumanBodyBones.RightHand);
+            var rightArmMuscles = GetRightArmMuscles();
+            Transform[] transforms = animator.GetComponentsInChildren<Transform>(true);
+            TransformState[] originalStates = CaptureStates(transforms);
+            var startedAnimationMode = !AnimationMode.InAnimationMode();
+
+            var lastFrame = Mathf.RoundToInt(source.length * source.frameRate);
+            var keyCount = lastFrame + 1;
+            Keyframe[][] muscleKeys = CreateKeyArrays(HumanTrait.MuscleCount, keyCount);
+            var sourcePose = new HumanPose();
+            var bodyPose = new HumanPose();
+            var editedPose = new HumanPose();
+            var beforeMaximum = 0f;
+            var beforeTotal = 0f;
+            var afterMaximum = 0f;
+            var afterTotal = 0f;
+            var rotationMaximum = 0f;
+
+            using (var poseHandler = new HumanPoseHandler(animator.avatar, animator.transform))
+            {
+                try
+                {
+                    if (startedAnimationMode)
+                    {
+                        AnimationMode.StartAnimationMode();
+                    }
+
+                    for (var frame = 0; frame <= lastFrame; frame++)
+                    {
+                        var time = Mathf.Min(frame / source.frameRate, source.length);
+                        Sample(animator, source, time);
+                        Vector3 handPositionInEye = eye.InverseTransformPoint(hand.position);
+                        Quaternion handRotationInEye = Quaternion.Inverse(eye.rotation) * hand.rotation;
+                        Vector3 elbowPositionInEye = eye.InverseTransformPoint(lower.position);
+                        poseHandler.GetHumanPose(ref sourcePose);
+
+                        Sample(animator, bodyClip, bodyTime);
+                        poseHandler.GetHumanPose(ref bodyPose);
+                        CopyMuscles(sourcePose, ref bodyPose, rightArmMuscles);
+                        poseHandler.SetHumanPose(ref bodyPose);
+
+                        Vector3 targetPosition = eye.TransformPoint(handPositionInEye);
+                        Quaternion targetRotation = eye.rotation * handRotationInEye;
+                        Vector3 elbowHintPosition = eye.TransformPoint(elbowPositionInEye);
+                        var beforeError = Vector3.Distance(hand.position, targetPosition);
+                        SolveTwoBoneIk(upper, lower, hand, targetPosition, elbowHintPosition);
+                        hand.rotation = targetRotation;
+                        var afterError = Vector3.Distance(hand.position, targetPosition);
+                        var rotationError = Quaternion.Angle(hand.rotation, targetRotation);
+
+                        beforeMaximum = Mathf.Max(beforeMaximum, beforeError);
+                        beforeTotal += beforeError;
+                        afterMaximum = Mathf.Max(afterMaximum, afterError);
+                        afterTotal += afterError;
+                        rotationMaximum = Mathf.Max(rotationMaximum, rotationError);
+
+                        poseHandler.GetHumanPose(ref editedPose);
+                        RecordPose(editedPose, time, frame, muscleKeys, rightArmMuscles);
+                    }
+                }
+                finally
+                {
+                    if (startedAnimationMode && AnimationMode.InAnimationMode())
+                    {
+                        AnimationMode.StopAnimationMode();
+                    }
+
+                    RestoreStates(transforms, originalStates);
+                }
+            }
+
+            AnimationClip output = CreateOutputClip(source, muscleKeys, rightArmMuscles);
+            SaveOutputClip(output, outputPath);
+
+            var frameCount = keyCount;
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "frames={0} before(max={1:F1}cm,mean={2:F1}cm) after(max={3:F1}cm,mean={4:F1}cm,rotMax={5:F1}deg)",
+                frameCount,
+                beforeMaximum * 100f,
+                beforeTotal * 100f / frameCount,
+                afterMaximum * 100f,
+                afterTotal * 100f / frameCount,
+                rotationMaximum);
+        }
+
+        private static void ValidateArmInEyeFrameArguments(
+            AnimationClip source,
+            AnimationClip bodyClip,
+            float bodyTime,
+            string outputPath,
+            Animator animator,
+            Transform eye)
+        {
+            if (EditorApplication.isPlaying)
+            {
+                throw new InvalidOperationException("플레이 모드에서는 팔 클립을 구울 수 없다.");
+            }
+
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source), "원본 클립은 필수다.");
+            }
+
+            if (bodyClip == null)
+            {
+                throw new ArgumentNullException(nameof(bodyClip), "몸통 클립은 필수다.");
+            }
+
+            if (animator == null)
+            {
+                throw new ArgumentNullException(nameof(animator), "Animator는 필수다.");
+            }
+
+            if (eye == null)
+            {
+                throw new ArgumentNullException(nameof(eye), "눈 Transform은 필수다.");
+            }
+
+            if (animator.avatar == null || !animator.avatar.isHuman || !animator.avatar.isValid)
+            {
+                throw new ArgumentException("Animator에 유효한 휴머노이드 Avatar가 필요하다.", nameof(animator));
+            }
+
+            if (!eye.IsChildOf(animator.transform))
+            {
+                throw new ArgumentException("눈 Transform은 Animator 계층 안에 있어야 한다.", nameof(eye));
+            }
+
+            if (bodyTime < 0f || bodyTime > bodyClip.length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bodyTime), "bodyTime은 몸통 클립 구간 안이어야 한다.");
+            }
+
+            if (string.IsNullOrWhiteSpace(outputPath)
+                || !outputPath.StartsWith("Assets/", StringComparison.Ordinal)
+                || !outputPath.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("outputPath는 Assets 아래의 .anim 경로여야 한다.", nameof(outputPath));
+            }
+
+            var sourcePath = AssetDatabase.GetAssetPath(source);
+            var bodyClipPath = AssetDatabase.GetAssetPath(bodyClip);
+            if (sourcePath == outputPath || bodyClipPath == outputPath)
+            {
+                throw new ArgumentException("입력 클립 경로에는 저장할 수 없다.", nameof(outputPath));
+            }
+
+            GetRequiredBone(animator, HumanBodyBones.RightUpperArm);
+            GetRequiredBone(animator, HumanBodyBones.RightLowerArm);
+            GetRequiredBone(animator, HumanBodyBones.RightHand);
+        }
+
+        private static Transform GetRequiredBone(Animator animator, HumanBodyBones bone)
+        {
+            Transform transform = animator.GetBoneTransform(bone);
+            if (transform == null)
+            {
+                throw new ArgumentException($"Animator에서 {bone} 뼈를 찾을 수 없다.", nameof(animator));
+            }
+
+            return transform;
+        }
+
+        private static bool[] GetRightArmMuscles()
+        {
+            var muscles = new bool[HumanTrait.MuscleCount];
+            for (var muscle = 0; muscle < muscles.Length; muscle++)
+            {
+                var muscleName = HumanTrait.MuscleName[muscle];
+                var boneIndex = HumanTrait.BoneFromMuscle(muscle);
+                if (boneIndex < 0 || !muscleName.StartsWith("Right ", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // RightArmMask의 오른팔과 오른손가락 범위는 근육 이름의 좌우와 근육이 속한 휴머노이드 뼈로 판정한다.
+                muscles[muscle] = IsRightArmBone((HumanBodyBones)boneIndex);
+            }
+
+            return muscles;
+        }
+
+        private static bool IsRightArmBone(HumanBodyBones bone)
+        {
+            switch (bone)
+            {
+                case HumanBodyBones.RightShoulder:
+                case HumanBodyBones.RightUpperArm:
+                case HumanBodyBones.RightLowerArm:
+                case HumanBodyBones.RightHand:
+                case HumanBodyBones.RightThumbProximal:
+                case HumanBodyBones.RightThumbIntermediate:
+                case HumanBodyBones.RightThumbDistal:
+                case HumanBodyBones.RightIndexProximal:
+                case HumanBodyBones.RightIndexIntermediate:
+                case HumanBodyBones.RightIndexDistal:
+                case HumanBodyBones.RightMiddleProximal:
+                case HumanBodyBones.RightMiddleIntermediate:
+                case HumanBodyBones.RightMiddleDistal:
+                case HumanBodyBones.RightRingProximal:
+                case HumanBodyBones.RightRingIntermediate:
+                case HumanBodyBones.RightRingDistal:
+                case HumanBodyBones.RightLittleProximal:
+                case HumanBodyBones.RightLittleIntermediate:
+                case HumanBodyBones.RightLittleDistal:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static void CopyMuscles(HumanPose source, ref HumanPose destination, bool[] muscleMask)
+        {
+            for (var muscle = 0; muscle < muscleMask.Length; muscle++)
+            {
+                if (muscleMask[muscle])
+                {
+                    destination.muscles[muscle] = source.muscles[muscle];
+                }
+            }
+        }
+
         private static void ValidateLimbOffsetArguments(
             AnimationClip source,
             string outputPath,
@@ -275,6 +517,16 @@ namespace FpsGame.Editor
             Transform lower,
             Transform end,
             Vector3 targetPosition)
+        {
+            SolveTwoBoneIk(upper, lower, end, targetPosition, lower.position);
+        }
+
+        private static void SolveTwoBoneIk(
+            Transform upper,
+            Transform lower,
+            Transform end,
+            Vector3 targetPosition,
+            Vector3 elbowHintPosition)
         {
             Vector3 upperPosition = upper.position;
             Vector3 lowerPosition = lower.position;
@@ -321,7 +573,7 @@ namespace FpsGame.Editor
                 var elbowHeight = Mathf.Sqrt(Mathf.Max(
                     0f,
                     upperLength * upperLength - elbowDistance * elbowDistance));
-                Vector3 elbowHintDirection = lowerPosition - upperPosition;
+                Vector3 elbowHintDirection = elbowHintPosition - upperPosition;
                 elbowHintDirection -= Vector3.Dot(elbowHintDirection, targetDirection) * targetDirection;
                 if (elbowHintDirection.sqrMagnitude <= Mathf.Epsilon)
                 {
@@ -609,6 +861,22 @@ namespace FpsGame.Editor
             }
         }
 
+        private static void RecordPose(
+            HumanPose pose,
+            float time,
+            int frame,
+            Keyframe[][] muscleKeys,
+            bool[] muscleMask)
+        {
+            for (var muscle = 0; muscle < pose.muscles.Length; muscle++)
+            {
+                if (muscleMask[muscle])
+                {
+                    muscleKeys[muscle][frame] = new Keyframe(time, pose.muscles[muscle]);
+                }
+            }
+        }
+
         private static void RecordRootPose(
             HumanPose originPose,
             HumanPose editedPose,
@@ -668,6 +936,36 @@ namespace FpsGame.Editor
             SetCurve(output, "RootQ.y", rootRotationKeys[1]);
             SetCurve(output, "RootQ.z", rootRotationKeys[2]);
             SetCurve(output, "RootQ.w", rootRotationKeys[3]);
+
+            output.EnsureQuaternionContinuity();
+            AnimationUtility.SetAnimationClipSettings(
+                output,
+                AnimationUtility.GetAnimationClipSettings(source));
+            AnimationUtility.SetAnimationEvents(output, AnimationUtility.GetAnimationEvents(source));
+            return output;
+        }
+
+        private static AnimationClip CreateOutputClip(
+            AnimationClip source,
+            Keyframe[][] muscleKeys,
+            bool[] muscleMask)
+        {
+            var output = new AnimationClip
+            {
+                frameRate = source.frameRate,
+                wrapMode = source.wrapMode,
+                name = source.name + "_Constrained"
+            };
+
+            // 마스크 밖의 근육과 Root 커브는 복사된 원본 커브를 그대로 유지한다.
+            CopySourceCurves(source, output);
+            for (var muscle = 0; muscle < HumanTrait.MuscleCount; muscle++)
+            {
+                if (muscleMask[muscle])
+                {
+                    SetCurve(output, HumanTrait.MuscleName[muscle], muscleKeys[muscle]);
+                }
+            }
 
             output.EnsureQuaternionContinuity();
             AnimationUtility.SetAnimationClipSettings(
