@@ -1,34 +1,26 @@
 using UnityEngine;
-using UnityEngine.Serialization;
+using FpsGame.Weapon;
 
 namespace FpsGame.Player
 {
-    // 단검 모드의 무기 표시와 공격 애니메이션을 제어한다.
-    public sealed class PlayerDagger : MonoBehaviour
+    // 근접 무기 모드의 표시, 입력, 공격 애니메이션과 타격 시점을 제어한다.
+    public sealed class PlayerMeleeAttack : MonoBehaviour
     {
         private const int DaggerLayerIndex = 4;
         private static readonly int s_stabHash = Animator.StringToHash("Stab");
         private static readonly int s_slashHash = Animator.StringToHash("Slash");
 
         [SerializeField] private GameObject _rifle;
-        [SerializeField] private GameObject _dagger;
+        [SerializeField] private Dagger _dagger;
         [SerializeField] private PlayerAim _aim;
         [SerializeField] private PlayerDaggerAim _daggerAim;
-        [SerializeField] private float _damage = 20f;
-        [SerializeField] private float _stabDamageMultiplier = 1.5f;
         [SerializeField] private int _stabHitFrame = 32;
         [SerializeField] private int _slashHitFrame = 20;
-        [FormerlySerializedAs("_reach")]
-        [SerializeField] private float _stabReach = 1.5f;
-        [SerializeField] private float _slashReach = 2f;
-        [SerializeField] private LayerMask _hitLayers;
 
         private PlayerWeaponMode _weaponMode;
         private Animator _animator;
         private int _pendingStateHash;
         private int _pendingHitFrame;
-        private float _pendingDamage;
-        private float _pendingReach;
         private bool _hasPendingAttack;
 
         private void Awake()
@@ -62,22 +54,20 @@ namespace FpsGame.Player
             if (Input.GetButtonDown("Fire1"))
             {
                 _animator.SetTrigger(s_slashHash);
-                SetPendingAttack(s_slashHash, _slashHitFrame, _damage, _slashReach);
+                SetPendingAttack(s_slashHash, _slashHitFrame);
             }
 
             if (Input.GetButtonDown("Fire2"))
             {
                 _animator.SetTrigger(s_stabHash);
-                SetPendingAttack(s_stabHash, _stabHitFrame, _damage * _stabDamageMultiplier, _stabReach);
+                SetPendingAttack(s_stabHash, _stabHitFrame);
             }
         }
 
-        private void SetPendingAttack(int stateHash, int hitFrame, float damage, float reach)
+        private void SetPendingAttack(int stateHash, int hitFrame)
         {
             _pendingStateHash = stateHash;
             _pendingHitFrame = hitFrame;
-            _pendingDamage = damage;
-            _pendingReach = reach;
             _hasPendingAttack = true;
         }
 
@@ -88,24 +78,20 @@ namespace FpsGame.Player
                 return;
             }
 
-            var hitNormalizedTime = _pendingHitFrame / (clip.length * clip.frameRate);
+            float hitNormalizedTime = _pendingHitFrame / (clip.length * clip.frameRate);
             if (stateInfo.normalizedTime < hitNormalizedTime)
             {
                 return;
             }
 
             Transform cameraTransform = Camera.main.transform;
-            var ray = new Ray(cameraTransform.position, cameraTransform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hitInfo, _pendingReach, _hitLayers) &&
-                hitInfo.collider.TryGetComponent(out IDamagable damagable))
+            if (_pendingStateHash == s_slashHash)
             {
-                var damageInfo = new DamageInfo
-                {
-                    Value = _pendingDamage,
-                    HitPoint = hitInfo.point,
-                    HitNormal = hitInfo.normal,
-                };
-                damagable.TakeDamage(damageInfo);
+                _dagger.Slash(cameraTransform.position, cameraTransform.forward);
+            }
+            else
+            {
+                _dagger.Stab(new Ray(cameraTransform.position, cameraTransform.forward));
             }
 
             _hasPendingAttack = false;
@@ -138,9 +124,9 @@ namespace FpsGame.Player
 
         private void HandleModeChange(WeaponMode mode)
         {
-            var isDaggerMode = mode == WeaponMode.Dagger;
+            bool isDaggerMode = mode == WeaponMode.Dagger;
             _rifle.SetActive(!isDaggerMode);
-            _dagger.SetActive(isDaggerMode);
+            _dagger.gameObject.SetActive(isDaggerMode);
             _aim.enabled = !isDaggerMode;
             _daggerAim.enabled = isDaggerMode;
             _animator.SetLayerWeight(DaggerLayerIndex, isDaggerMode ? 1f : 0f);
