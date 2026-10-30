@@ -18,6 +18,7 @@ namespace FpsGame.Weapon
         [FormerlySerializedAs("_slashAngle")]
         [SerializeField] private float _fanAttackAngle = 90f;
         [SerializeField] private LayerMask _hitLayers = 3575;
+        [SerializeField] private LayerMask _wallLayers;
 
         public void FanAttack(Vector3 origin, Vector3 forward)
         {
@@ -55,6 +56,11 @@ namespace FpsGame.Weapon
                     continue;
                 }
 
+                if (Physics.Linecast(origin, hitPoint, _wallLayers))
+                {
+                    continue;
+                }
+
                 s_damagables[damagableCount] = damagable;
                 damagableCount++;
 
@@ -70,7 +76,7 @@ namespace FpsGame.Weapon
 
         public void Stab(Ray ray)
         {
-            if (!Physics.Raycast(ray, out RaycastHit hitInfo, _stabReach, _hitLayers) ||
+            if (!Physics.Raycast(ray, out RaycastHit hitInfo, _stabReach, _hitLayers | _wallLayers) ||
                 !hitInfo.collider.TryGetComponent(out IDamagable damagable))
             {
                 return;
