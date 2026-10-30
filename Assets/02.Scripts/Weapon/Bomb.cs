@@ -55,11 +55,17 @@ public class Bomb : MonoBehaviour
                 continue;
             }
 
+            Vector3 hitPoint = col.ClosestPoint(transform.position);
+            if (Physics.Linecast(transform.position, hitPoint, LayerMask.GetMask("Wall")))
+            {
+                continue;
+            }
+
             DamageInfo damageInfo = new()
             {
                 Value = _explosionDamage,
-                HitPoint = col.ClosestPoint(transform.position),
-                HitNormal = (transform.position - col.ClosestPoint(transform.position)).normalized
+                HitPoint = hitPoint,
+                HitNormal = (transform.position - hitPoint).normalized
             };
             damagable.TakeDamage(damageInfo);
         }
