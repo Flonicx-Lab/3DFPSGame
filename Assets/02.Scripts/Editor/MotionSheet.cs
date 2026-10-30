@@ -8,23 +8,26 @@ using UnityEngine;
 
 namespace FpsGame.Editor
 {
-    // 애니메이션 상태의 시간별 화면과 자세 수치를 한 쌍의 파일로 기록한다.
+    // 애니메이션 상태를 처음부터 실제로 재생하며 시간별 화면과 자세 수치를 기록한다.
     public static class MotionSheet
     {
         private const int CellWidth = 480;
         private const int CellHeight = 270;
-        private const int FrameWaitCount = 2;
         private const int DigitWidth = 3;
         private const int DigitHeight = 5;
         private const int DigitScale = 2;
         private const int DigitSpacing = 1;
+        private const float CaptureTimeScale = 0.1f;
+        private const float StateStartTimeout = 2f;
+        private const float CaptureTimeout = 60f;
+        private const float LastSampleThreshold = 0.99f;
 
-        private static readonly Color32 TrajectoryColor = new(255, 220, 0, 255);
-        private static readonly Color32 CurrentPointColor = new(255, 0, 0, 255);
-        private static readonly Color32 CenterColor = new(0, 255, 0, 255);
-        private static readonly Color32 NumberColor = new(255, 255, 255, 255);
-        private static readonly Color32 EmptyCellColor = new(0, 0, 0, 255);
-        private static readonly int[,] DigitRows =
+        private static readonly Color32 s_trajectoryColor = new(255, 220, 0, 255);
+        private static readonly Color32 s_currentPointColor = new(255, 0, 0, 255);
+        private static readonly Color32 s_centerColor = new(0, 255, 0, 255);
+        private static readonly Color32 s_numberColor = new(255, 255, 255, 255);
+        private static readonly Color32 s_emptyCellColor = new(0, 0, 0, 255);
+        private static readonly int[,] s_digitRows =
         {
             { 7, 5, 5, 5, 7 },
             { 2, 6, 2, 2, 7 },
@@ -38,8 +41,8 @@ namespace FpsGame.Editor
             { 7, 5, 7, 1, 7 },
         };
 
-        private static readonly List<Color32[]> CellPixels = new();
-        private static readonly List<Sample> Samples = new();
+        private static readonly List<Color32[]> s_cellPixels = new();
+        private static readonly List<Sample> s_samples = new();
 
         private static Animator _animator;
         private static Camera _camera;
@@ -68,10 +71,14 @@ namespace FpsGame.Editor
         private static string _pngPath;
         private static string _csvPath;
         private static float _savedTimeScale;
-        private static int _sampleStartFrame;
         private static int _sampleIndex;
         private static float _clipLength;
         private static float _clipFrameRate;
+        private static double _captureStartedAt;
+        private static int _lastObservedFrame;
+        private static bool _stateStarted;
+        private static bool _hasLastFrameSnapshot;
+        private static Snapshot _lastFrameSnapshot;
         private static bool _isCaptureActive;
 
         public static void Capture(
@@ -110,10 +117,10 @@ namespace FpsGame.Editor
             try
             {
                 _savedTimeScale = Time.timeScale;
-                Time.timeScale = 0f;
+                Time.timeScale = CaptureTimeScale;
                 _isCaptureActive = true;
                 EditorApplication.update += OnEditorUpdate;
-                PlaySample(0);
+                _animator.Play(_stateName, _layer, 0f);
             }
             catch
             {
@@ -205,8 +212,12 @@ namespace FpsGame.Editor
             _sampleIndex = 0;
             _clipLength = 0f;
             _clipFrameRate = 0f;
-            CellPixels.Clear();
-            Samples.Clear();
+            _captureStartedAt = EditorApplication.timeSinceStartup;
+            _lastObservedFrame = -1;
+            _stateStarted = false;
+            _hasLastFrameSnapshot = false;
+            s_cellPixels.Clear();
+            s_samples.Clear();
             CacheBones(animator);
         }
 
@@ -241,47 +252,113 @@ namespace FpsGame.Editor
             return boneTransform;
         }
 
-        private static void PlaySample(int sampleIndex)
-        {
-            _sampleIndex = sampleIndex;
-            float normalizedTime = sampleIndex / (float)(_sampleCount - 1);
-            _animator.Play(_stateName, _layer, normalizedTime);
-            _sampleStartFrame = Time.frameCount;
-        }
-
         private static void OnEditorUpdate()
         {
-            if (!_isCaptureActive || Time.frameCount - _sampleStartFrame < FrameWaitCount)
+            if (!_isCaptureActive)
             {
                 return;
             }
 
             try
             {
-                CaptureCurrentSample();
-                int nextSampleIndex = _sampleIndex + 1;
-                if (nextSampleIndex < _sampleCount)
+                var elapsedTime = EditorApplication.timeSinceStartup - _captureStartedAt;
+                if (elapsedTime > CaptureTimeout)
                 {
-                    PlaySample(nextSampleIndex);
+                    FailCapture($"MotionSheet 캡처가 실시간 {CaptureTimeout}초를 초과했습니다.");
                     return;
                 }
 
-                WriteOutputs();
-                string pngPath = _pngPath;
-                string csvPath = _csvPath;
-                StopCapture();
-                Debug.Log($"MotionSheet PNG 저장 완료: {pngPath}\nMotionSheet CSV 저장 완료: {csvPath}");
+                AnimatorStateInfo stateInfo = GetObservedStateInfo();
+                var isTargetState = stateInfo.IsName(_stateName);
+                if (!_stateStarted)
+                {
+                    if (!isTargetState)
+                    {
+                        if (elapsedTime > StateStartTimeout)
+                        {
+                            FailCapture($"애니메이션 상태가 실시간 {StateStartTimeout}초 안에 시작되지 않았습니다: {_stateName}");
+                        }
+
+                        return;
+                    }
+
+                    _stateStarted = true;
+                }
+                else if (!isTargetState)
+                {
+                    CaptureLastSampleBeforeStateExit();
+                    return;
+                }
+
+                if (_lastObservedFrame == Time.frameCount)
+                {
+                    return;
+                }
+
+                _lastObservedFrame = Time.frameCount;
+                CaptureReachedSamples(Mathf.Clamp01(stateInfo.normalizedTime));
             }
-            catch
+            catch (Exception exception)
             {
+                Debug.LogError($"MotionSheet 캡처에 실패했습니다.\n{exception}");
                 StopCapture();
-                throw;
             }
         }
 
-        private static void CaptureCurrentSample()
+        private static AnimatorStateInfo GetObservedStateInfo()
         {
-            float normalizedTime = _sampleIndex / (float)(_sampleCount - 1);
+            return _animator.IsInTransition(_layer)
+                ? _animator.GetNextAnimatorStateInfo(_layer)
+                : _animator.GetCurrentAnimatorStateInfo(_layer);
+        }
+
+        private static void CaptureReachedSamples(float normalizedTime)
+        {
+            while (_sampleIndex < _sampleCount - 1)
+            {
+                var targetTime = _sampleIndex / (float)(_sampleCount - 1);
+                if (normalizedTime < targetTime)
+                {
+                    break;
+                }
+
+                AddSnapshot(CaptureSnapshot(normalizedTime));
+                _sampleIndex++;
+            }
+
+            if (_sampleIndex != _sampleCount - 1)
+            {
+                return;
+            }
+
+            Snapshot snapshot = CaptureSnapshot(normalizedTime);
+            if (normalizedTime >= LastSampleThreshold)
+            {
+                AddSnapshot(snapshot);
+                _sampleIndex++;
+                CompleteCapture();
+                return;
+            }
+
+            _lastFrameSnapshot = snapshot;
+            _hasLastFrameSnapshot = true;
+        }
+
+        private static void CaptureLastSampleBeforeStateExit()
+        {
+            if (_sampleIndex != _sampleCount - 1 || !_hasLastFrameSnapshot)
+            {
+                FailCapture($"애니메이션 상태가 모든 샘플 시점에 도달하기 전에 종료되었습니다: {_stateName}");
+                return;
+            }
+
+            AddSnapshot(_lastFrameSnapshot);
+            _sampleIndex++;
+            CompleteCapture();
+        }
+
+        private static Snapshot CaptureSnapshot(float normalizedTime)
+        {
             if (_sampleIndex == 0)
             {
                 CacheClipTiming();
@@ -289,12 +366,12 @@ namespace FpsGame.Editor
 
             Vector3 effectorWorldPosition = _effector.TransformPoint(_effectorLocalPoint);
             Vector3 viewportPosition = _camera.WorldToViewportPoint(effectorWorldPosition);
-            float movementSpeed = CalculateMovementSpeed(effectorWorldPosition);
+            var movementSpeed = CalculateMovementSpeed(effectorWorldPosition);
             Vector3 rightAxis = (_rightShoulder.position - _leftShoulder.position).normalized;
             Vector3 upAxis = Vector3.ProjectOnPlane(_neck.position - _hips.position, rightAxis).normalized;
             Vector3 forwardAxis = Vector3.Cross(rightAxis, upAxis).normalized;
 
-            Sample sample = new Sample
+            var sample = new Sample
             {
                 Number = _sampleIndex + 1,
                 NormalizedTime = normalizedTime,
@@ -322,20 +399,47 @@ namespace FpsGame.Editor
                 RightFootHeight = _rightFoot.position.y - _animator.transform.position.y,
             };
 
-            Samples.Add(sample);
-            CellPixels.Add(RenderCell());
+            return new Snapshot
+            {
+                Sample = sample,
+                Pixels = RenderCell(),
+            };
+        }
+
+        private static void AddSnapshot(Snapshot snapshot)
+        {
+            s_samples.Add(snapshot.Sample);
+            s_cellPixels.Add(snapshot.Pixels);
+        }
+
+        private static void CompleteCapture()
+        {
+            WriteOutputs();
+            var pngPath = _pngPath;
+            var csvPath = _csvPath;
+            StopCapture();
+            Debug.Log($"MotionSheet PNG 저장 완료: {pngPath}\nMotionSheet CSV 저장 완료: {csvPath}");
+        }
+
+        private static void FailCapture(string message)
+        {
+            Debug.LogError(message);
+            StopCapture();
         }
 
         private static void CacheClipTiming()
         {
-            AnimatorClipInfo[] clipInfos = _animator.GetCurrentAnimatorClipInfo(_layer);
+            AnimatorClipInfo[] clipInfos = _animator.IsInTransition(_layer)
+                && _animator.GetNextAnimatorStateInfo(_layer).IsName(_stateName)
+                    ? _animator.GetNextAnimatorClipInfo(_layer)
+                    : _animator.GetCurrentAnimatorClipInfo(_layer);
             if (clipInfos.Length == 0)
             {
                 throw new InvalidOperationException("지정한 상태에서 재생 중인 AnimationClip을 찾을 수 없습니다.");
             }
 
             AnimatorClipInfo selectedClipInfo = clipInfos[0];
-            for (int i = 1; i < clipInfos.Length; i++)
+            for (var i = 1; i < clipInfos.Length; i++)
             {
                 if (clipInfos[i].weight > selectedClipInfo.weight)
                 {
@@ -353,13 +457,13 @@ namespace FpsGame.Editor
 
         private static float CalculateMovementSpeed(Vector3 effectorWorldPosition)
         {
-            if (Samples.Count == 0)
+            if (s_samples.Count == 0)
             {
                 return 0f;
             }
 
-            float sampleDuration = _clipLength / (_sampleCount - 1);
-            Vector3 previousPosition = Samples[Samples.Count - 1].EffectorWorldPosition;
+            var sampleDuration = _clipLength / (_sampleCount - 1);
+            Vector3 previousPosition = s_samples[s_samples.Count - 1].EffectorWorldPosition;
             return Vector3.Distance(previousPosition, effectorWorldPosition) / sampleDuration;
         }
 
@@ -386,7 +490,7 @@ namespace FpsGame.Editor
 
         private static Color32[] RenderCell()
         {
-            RenderTexture renderTexture = RenderTexture.GetTemporary(CellWidth, CellHeight, 24);
+            var renderTexture = RenderTexture.GetTemporary(CellWidth, CellHeight, 24);
             RenderTexture previousActive = RenderTexture.active;
             RenderTexture previousTarget = _camera.targetTexture;
             Texture2D cellTexture = null;
@@ -415,7 +519,7 @@ namespace FpsGame.Editor
 
         private static void WriteOutputs()
         {
-            string directoryPath = Path.GetDirectoryName(_pngPath);
+            var directoryPath = Path.GetDirectoryName(_pngPath);
             if (!string.IsNullOrEmpty(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
@@ -427,22 +531,22 @@ namespace FpsGame.Editor
 
         private static void WritePng()
         {
-            int rowCount = Mathf.CeilToInt(_sampleCount / (float)_columns);
-            int sheetWidth = _columns * CellWidth;
-            int sheetHeight = rowCount * CellHeight;
-            Color32[] sheetPixels = new Color32[sheetWidth * sheetHeight];
-            for (int i = 0; i < sheetPixels.Length; i++)
+            var rowCount = Mathf.CeilToInt(_sampleCount / (float)_columns);
+            var sheetWidth = _columns * CellWidth;
+            var sheetHeight = rowCount * CellHeight;
+            var sheetPixels = new Color32[sheetWidth * sheetHeight];
+            for (var i = 0; i < sheetPixels.Length; i++)
             {
-                sheetPixels[i] = EmptyCellColor;
+                sheetPixels[i] = s_emptyCellColor;
             }
 
-            for (int i = 0; i < CellPixels.Count; i++)
+            for (var i = 0; i < s_cellPixels.Count; i++)
             {
-                DrawCellOverlay(CellPixels[i], i);
-                CopyCellToSheet(CellPixels[i], sheetPixels, i, rowCount, sheetWidth);
+                DrawCellOverlay(s_cellPixels[i], i);
+                CopyCellToSheet(s_cellPixels[i], sheetPixels, i, rowCount, sheetWidth);
             }
 
-            Texture2D sheetTexture = new Texture2D(sheetWidth, sheetHeight, TextureFormat.RGB24, false);
+            var sheetTexture = new Texture2D(sheetWidth, sheetHeight, TextureFormat.RGB24, false);
             try
             {
                 sheetTexture.SetPixels32(sheetPixels);
@@ -457,19 +561,28 @@ namespace FpsGame.Editor
 
         private static void DrawCellOverlay(Color32[] pixels, int currentSampleIndex)
         {
-            for (int i = 1; i < Samples.Count; i++)
+            for (var i = 1; i < s_samples.Count; i++)
             {
-                Vector3 startViewport = Samples[i - 1].ViewportPosition;
-                Vector3 endViewport = Samples[i].ViewportPosition;
-                DrawViewportLine(pixels, startViewport, endViewport, TrajectoryColor);
+                Vector3 startViewport = s_samples[i - 1].ViewportPosition;
+                Vector3 endViewport = s_samples[i].ViewportPosition;
+                if (startViewport.z <= 0f || endViewport.z <= 0f)
+                {
+                    continue;
+                }
+
+                DrawViewportLine(pixels, startViewport, endViewport, s_trajectoryColor);
             }
 
-            Vector3 currentViewport = Samples[currentSampleIndex].ViewportPosition;
-            int currentX = Mathf.RoundToInt(currentViewport.x * (CellWidth - 1));
-            int currentY = Mathf.RoundToInt(currentViewport.y * (CellHeight - 1));
-            DrawCross(pixels, CellWidth / 2, CellHeight / 2, 4, CenterColor);
-            DrawCircle(pixels, currentX, currentY, 4, CurrentPointColor);
-            DrawNumber(pixels, Samples[currentSampleIndex].Number, 6, CellHeight - 6, NumberColor);
+            Vector3 currentViewport = s_samples[currentSampleIndex].ViewportPosition;
+            DrawCross(pixels, CellWidth / 2, CellHeight / 2, 4, s_centerColor);
+            if (currentViewport.z > 0f)
+            {
+                var currentX = Mathf.RoundToInt(currentViewport.x * (CellWidth - 1));
+                var currentY = Mathf.RoundToInt(currentViewport.y * (CellHeight - 1));
+                DrawCircle(pixels, currentX, currentY, 4, s_currentPointColor);
+            }
+
+            DrawNumber(pixels, s_samples[currentSampleIndex].Number, 6, CellHeight - 6, s_numberColor);
         }
 
         private static void DrawViewportLine(
@@ -478,27 +591,27 @@ namespace FpsGame.Editor
             Vector3 endViewport,
             Color32 color)
         {
-            float startX = startViewport.x * (CellWidth - 1);
-            float startY = startViewport.y * (CellHeight - 1);
-            float endX = endViewport.x * (CellWidth - 1);
-            float endY = endViewport.y * (CellHeight - 1);
+            var startX = startViewport.x * (CellWidth - 1);
+            var startY = startViewport.y * (CellHeight - 1);
+            var endX = endViewport.x * (CellWidth - 1);
+            var endY = endViewport.y * (CellHeight - 1);
             if (!ClipLineToCell(ref startX, ref startY, ref endX, ref endY))
             {
                 return;
             }
 
-            int stepCount = Mathf.CeilToInt(Mathf.Max(Mathf.Abs(endX - startX), Mathf.Abs(endY - startY)));
+            var stepCount = Mathf.CeilToInt(Mathf.Max(Mathf.Abs(endX - startX), Mathf.Abs(endY - startY)));
             if (stepCount == 0)
             {
                 SetPixel(pixels, Mathf.RoundToInt(startX), Mathf.RoundToInt(startY), color);
                 return;
             }
 
-            for (int i = 0; i <= stepCount; i++)
+            for (var i = 0; i <= stepCount; i++)
             {
-                float ratio = i / (float)stepCount;
-                int x = Mathf.RoundToInt(Mathf.Lerp(startX, endX, ratio));
-                int y = Mathf.RoundToInt(Mathf.Lerp(startY, endY, ratio));
+                var ratio = i / (float)stepCount;
+                var x = Mathf.RoundToInt(Mathf.Lerp(startX, endX, ratio));
+                var y = Mathf.RoundToInt(Mathf.Lerp(startY, endY, ratio));
                 SetPixel(pixels, x, y, color);
                 SetPixel(pixels, x + 1, y, color);
             }
@@ -506,10 +619,10 @@ namespace FpsGame.Editor
 
         private static bool ClipLineToCell(ref float startX, ref float startY, ref float endX, ref float endY)
         {
-            float deltaX = endX - startX;
-            float deltaY = endY - startY;
-            float minimumRatio = 0f;
-            float maximumRatio = 1f;
+            var deltaX = endX - startX;
+            var deltaY = endY - startY;
+            var minimumRatio = 0f;
+            var maximumRatio = 1f;
 
             if (!ClipLineBoundary(-deltaX, startX, ref minimumRatio, ref maximumRatio)
                 || !ClipLineBoundary(deltaX, CellWidth - 1 - startX, ref minimumRatio, ref maximumRatio)
@@ -537,7 +650,7 @@ namespace FpsGame.Editor
                 return distance >= 0f;
             }
 
-            float ratio = distance / direction;
+            var ratio = distance / direction;
             if (direction < 0f)
             {
                 if (ratio > maximumRatio)
@@ -560,10 +673,10 @@ namespace FpsGame.Editor
 
         private static void DrawCircle(Color32[] pixels, int centerX, int centerY, int radius, Color32 color)
         {
-            int squaredRadius = radius * radius;
-            for (int y = -radius; y <= radius; y++)
+            var squaredRadius = radius * radius;
+            for (var y = -radius; y <= radius; y++)
             {
-                for (int x = -radius; x <= radius; x++)
+                for (var x = -radius; x <= radius; x++)
                 {
                     if (x * x + y * y <= squaredRadius)
                     {
@@ -575,7 +688,7 @@ namespace FpsGame.Editor
 
         private static void DrawCross(Color32[] pixels, int centerX, int centerY, int radius, Color32 color)
         {
-            for (int offset = -radius; offset <= radius; offset++)
+            for (var offset = -radius; offset <= radius; offset++)
             {
                 SetPixel(pixels, centerX + offset, centerY, color);
                 SetPixel(pixels, centerX, centerY + offset, color);
@@ -584,11 +697,11 @@ namespace FpsGame.Editor
 
         private static void DrawNumber(Color32[] pixels, int number, int left, int top, Color32 color)
         {
-            string text = number.ToString(CultureInfo.InvariantCulture);
-            int cursorX = left;
-            for (int i = 0; i < text.Length; i++)
+            var text = number.ToString(CultureInfo.InvariantCulture);
+            var cursorX = left;
+            for (var i = 0; i < text.Length; i++)
             {
-                int digit = text[i] - '0';
+                var digit = text[i] - '0';
                 DrawDigit(pixels, digit, cursorX, top, color);
                 cursorX += (DigitWidth + DigitSpacing) * DigitScale;
             }
@@ -596,23 +709,23 @@ namespace FpsGame.Editor
 
         private static void DrawDigit(Color32[] pixels, int digit, int left, int top, Color32 color)
         {
-            for (int row = 0; row < DigitHeight; row++)
+            for (var row = 0; row < DigitHeight; row++)
             {
-                int rowBits = DigitRows[digit, row];
-                for (int column = 0; column < DigitWidth; column++)
+                var rowBits = s_digitRows[digit, row];
+                for (var column = 0; column < DigitWidth; column++)
                 {
-                    int bit = 1 << (DigitWidth - column - 1);
+                    var bit = 1 << (DigitWidth - column - 1);
                     if ((rowBits & bit) == 0)
                     {
                         continue;
                     }
 
-                    for (int scaleY = 0; scaleY < DigitScale; scaleY++)
+                    for (var scaleY = 0; scaleY < DigitScale; scaleY++)
                     {
-                        for (int scaleX = 0; scaleX < DigitScale; scaleX++)
+                        for (var scaleX = 0; scaleX < DigitScale; scaleX++)
                         {
-                            int x = left + column * DigitScale + scaleX;
-                            int y = top - row * DigitScale - scaleY;
+                            var x = left + column * DigitScale + scaleX;
+                            var y = top - row * DigitScale - scaleY;
                             SetPixel(pixels, x, y, color);
                         }
                     }
@@ -637,30 +750,30 @@ namespace FpsGame.Editor
             int rowCount,
             int sheetWidth)
         {
-            int column = sampleIndex % _columns;
-            int rowFromTop = sampleIndex / _columns;
-            int destinationX = column * CellWidth;
-            int destinationY = (rowCount - rowFromTop - 1) * CellHeight;
-            for (int y = 0; y < CellHeight; y++)
+            var column = sampleIndex % _columns;
+            var rowFromTop = sampleIndex / _columns;
+            var destinationX = column * CellWidth;
+            var destinationY = (rowCount - rowFromTop - 1) * CellHeight;
+            for (var y = 0; y < CellHeight; y++)
             {
-                int sourceIndex = y * CellWidth;
-                int destinationIndex = (destinationY + y) * sheetWidth + destinationX;
+                var sourceIndex = y * CellWidth;
+                var destinationIndex = (destinationY + y) * sheetWidth + destinationX;
                 Array.Copy(cellPixels, sourceIndex, sheetPixels, destinationIndex, CellWidth);
             }
         }
 
         private static void WriteCsv()
         {
-            StringBuilder csv = new StringBuilder();
+            var csv = new StringBuilder();
             csv.AppendLine(
                 "sample,normalizedTime,clipFrame,effectorViewportX,effectorViewportY,effectorDepth,"
                 + "effectorSpeed,leftElbowAngle,rightElbowAngle,leftKneeAngle,rightKneeAngle,"
                 + "rightHandBodyX,rightHandBodyY,rightHandBodyZ,leftHandBodyX,leftHandBodyY,"
                 + "leftHandBodyZ,leftFootHeight,rightFootHeight");
 
-            for (int i = 0; i < Samples.Count; i++)
+            for (var i = 0; i < s_samples.Count; i++)
             {
-                AppendCsvSample(csv, Samples[i]);
+                AppendCsvSample(csv, s_samples[i]);
             }
 
             File.WriteAllText(_csvPath, csv.ToString(), new UTF8Encoding(false));
@@ -708,8 +821,14 @@ namespace FpsGame.Editor
             _animator = null;
             _camera = null;
             _effector = null;
-            CellPixels.Clear();
-            Samples.Clear();
+            s_cellPixels.Clear();
+            s_samples.Clear();
+        }
+
+        private struct Snapshot
+        {
+            public Sample Sample;
+            public Color32[] Pixels;
         }
 
         private struct Sample
