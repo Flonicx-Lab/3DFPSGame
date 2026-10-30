@@ -13,9 +13,19 @@ namespace FpsGame.Player
         [SerializeField] private GameObject _dagger;
         [SerializeField] private PlayerAim _aim;
         [SerializeField] private PlayerDaggerAim _daggerAim;
+        [SerializeField] private float _damage = 20f;
+        [SerializeField] private float _stabDamageMultiplier = 1.5f;
+        [SerializeField] private int _stabHitFrame = 32;
+        [SerializeField] private int _slashHitFrame = 20;
+        [SerializeField] private float _reach = 1.5f;
+        [SerializeField] private LayerMask _hitLayers;
 
         private PlayerWeaponMode _weaponMode;
         private Animator _animator;
+        private int _pendingStateHash;
+        private int _pendingHitFrame;
+        private float _pendingDamage;
+        private bool _hasPendingAttack;
 
         private void Awake()
         {
@@ -43,15 +53,82 @@ namespace FpsGame.Player
                 return;
             }
 
+            TryHitPendingAttack();
+
             if (Input.GetButtonDown("Fire1"))
             {
                 _animator.SetTrigger(s_slashHash);
+                SetPendingAttack(s_slashHash, _slashHitFrame, _damage);
             }
 
             if (Input.GetButtonDown("Fire2"))
             {
                 _animator.SetTrigger(s_stabHash);
+                SetPendingAttack(s_stabHash, _stabHitFrame, _damage * _stabDamageMultiplier);
             }
+        }
+
+        private void SetPendingAttack(int stateHash, int hitFrame, float damage)
+        {
+            _pendingStateHash = stateHash;
+            _pendingHitFrame = hitFrame;
+            _pendingDamage = damage;
+            _hasPendingAttack = true;
+        }
+
+        private void TryHitPendingAttack()
+        {
+            if (!_hasPendingAttack || !TryGetPendingState(out AnimatorStateInfo stateInfo, out AnimationClip clip))
+            {
+                return;
+            }
+
+            var hitNormalizedTime = _pendingHitFrame / (clip.length * clip.frameRate);
+            if (stateInfo.normalizedTime < hitNormalizedTime)
+            {
+                return;
+            }
+
+            Transform cameraTransform = Camera.main.transform;
+            var ray = new Ray(cameraTransform.position, cameraTransform.forward);
+            if (Physics.Raycast(ray, out RaycastHit hitInfo, _reach, _hitLayers) &&
+                hitInfo.collider.TryGetComponent(out IDamagable damagable))
+            {
+                var damageInfo = new DamageInfo
+                {
+                    Value = _pendingDamage,
+                    HitPoint = hitInfo.point,
+                    HitNormal = hitInfo.normal,
+                };
+                damagable.TakeDamage(damageInfo);
+            }
+
+            _hasPendingAttack = false;
+        }
+
+        private bool TryGetPendingState(out AnimatorStateInfo stateInfo, out AnimationClip clip)
+        {
+            stateInfo = _animator.GetCurrentAnimatorStateInfo(DaggerLayerIndex);
+            if (stateInfo.shortNameHash == _pendingStateHash)
+            {
+                AnimatorClipInfo[] clipInfo = _animator.GetCurrentAnimatorClipInfo(DaggerLayerIndex);
+                clip = clipInfo.Length > 0 ? clipInfo[0].clip : null;
+                return clip != null;
+            }
+
+            if (_animator.IsInTransition(DaggerLayerIndex))
+            {
+                stateInfo = _animator.GetNextAnimatorStateInfo(DaggerLayerIndex);
+                if (stateInfo.shortNameHash == _pendingStateHash)
+                {
+                    AnimatorClipInfo[] clipInfo = _animator.GetNextAnimatorClipInfo(DaggerLayerIndex);
+                    clip = clipInfo.Length > 0 ? clipInfo[0].clip : null;
+                    return clip != null;
+                }
+            }
+
+            clip = null;
+            return false;
         }
 
         private void HandleModeChange(WeaponMode mode)
