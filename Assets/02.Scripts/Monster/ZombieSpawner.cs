@@ -16,7 +16,7 @@ public class ZombieSpawner : MonoBehaviour
     [SerializeField] private float _minDistanceFromPlayer = 15f; // 플레이어와의 최소 거리
 
     [Header("개발")]
-    [SerializeField] private bool _spawnEnabled = true; // 개발 중 좀비 스폰을 임시로 끈다.
+    [SerializeField] private bool _spawnEnabled = true; // F2로 켜고 끄는 개발용 스폰 스위치
 
     private readonly List<Zombie> _aliveZombies = new();
     private readonly List<Transform> _candidatePoints = new();
@@ -42,6 +42,12 @@ public class ZombieSpawner : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.F2))
+        {
+            _spawnEnabled = !_spawnEnabled;
+            Debug.Log($"좀비 스폰이 {(_spawnEnabled ? "켜졌습니다" : "꺼졌습니다")}.");
+        }
+
         if (!_spawnEnabled)
         {
             return;
