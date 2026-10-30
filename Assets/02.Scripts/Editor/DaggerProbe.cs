@@ -41,7 +41,7 @@ namespace FpsGame.Editor
 
             AnimationClip baseClip = Require(state.motion as AnimationClip, $"상태 {stateName}의 원본 AnimationClip");
             AnimatorControllerLayer additiveLayer = controller.layers[AdditiveLayerIndex];
-            AnimationClip additiveClip = additiveLayer.GetOverrideMotion(state) as AnimationClip;
+            var additiveClip = additiveLayer.GetOverrideMotion(state) as AnimationClip;
             AvatarMask additiveMask = additiveLayer.avatarMask;
             if (additiveClip != null)
             {
@@ -66,8 +66,8 @@ namespace FpsGame.Editor
                 throw new InvalidOperationException($"상태 {stateName}의 원본 클립 frameRate가 0 이하입니다.");
             }
 
-            float time = frame / baseClip.frameRate;
-            string result = AnimationProbe.Measure(
+            var time = frame / baseClip.frameRate;
+            var result = AnimationProbe.Measure(
                 animator,
                 baseClip,
                 additiveClip,
@@ -102,7 +102,7 @@ namespace FpsGame.Editor
                 throw new InvalidOperationException("RightHand/Dagger에서 DaggerGrip을 찾을 수 없습니다.");
             }
 
-            SerializedObject serializedGrip = new SerializedObject(daggerGrip);
+            var serializedGrip = new SerializedObject(daggerGrip);
             SerializedProperty positionProperty = serializedGrip.FindProperty("_reverseLocalPosition");
             SerializedProperty eulerProperty = serializedGrip.FindProperty("_reverseLocalEulerAngles");
             if (positionProperty == null || eulerProperty == null)
