@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace FpsGame.Player
 {
-    // 소총을 쥔 자세일 때 양손을 손잡이 목표에 고정한다.
+    // 소총의 견착과 투척 중 왼손으로 드는 자세를 함께 다룬다.
     [RequireComponent(typeof(Animator))]
     public sealed class PlayerRifleGrip : MonoBehaviour
     {
@@ -10,14 +10,43 @@ namespace FpsGame.Player
         private const int IkLayerIndex = 5;
         private static readonly int s_emptyStateHash = Animator.StringToHash("Empty");
 
+        [Header("소총")]
+        [SerializeField] private Transform _rifle;
+        [SerializeField] private Transform _carryAnchor;
+        [SerializeField] private float _carryBlendTime = 0.2f;
+
+        [Header("손잡이")]
         [SerializeField] private Transform _rightHandGrip;
         [SerializeField] private Transform _leftHandGrip;
 
         private Animator _animator;
+        private Vector3 _shoulderLocalPosition;
+        private Quaternion _shoulderLocalRotation;
+        private float _carryWeight;
 
         private void Awake()
         {
             _animator = GetComponent<Animator>();
+            _shoulderLocalPosition = _rifle.localPosition;
+            _shoulderLocalRotation = _rifle.localRotation;
+        }
+
+        private void Update()
+        {
+            var targetWeight = IsThrowing() ? 1.0f : 0.0f;
+            _carryWeight = Mathf.MoveTowards(
+                _carryWeight,
+                targetWeight,
+                Time.deltaTime / _carryBlendTime);
+        }
+
+        private void LateUpdate()
+        {
+            Vector3 carryLocalPosition = _rifle.parent.InverseTransformPoint(_carryAnchor.position);
+            Quaternion carryLocalRotation = Quaternion.Inverse(_rifle.parent.rotation) * _carryAnchor.rotation;
+
+            _rifle.localPosition = Vector3.Lerp(_shoulderLocalPosition, carryLocalPosition, _carryWeight);
+            _rifle.localRotation = Quaternion.Slerp(_shoulderLocalRotation, carryLocalRotation, _carryWeight);
         }
 
         private void OnAnimatorIK(int layerIndex)
@@ -27,18 +56,21 @@ namespace FpsGame.Player
                 return;
             }
 
-            AnimatorStateInfo throwState = _animator.GetCurrentAnimatorStateInfo(ThrowLayerIndex);
-            var isThrowLayerEmpty = throwState.shortNameHash == s_emptyStateHash
-                && !_animator.IsInTransition(ThrowLayerIndex);
-
-            // 투척 중 양손 IK가 소총을 따라가며 던지는 자세를 막지 않도록 끈다.
-            var weight = _leftHandGrip.gameObject.activeInHierarchy && isThrowLayerEmpty ? 1.0f : 0.0f;
+            var weight = (1.0f - _carryWeight)
+                * (_leftHandGrip.gameObject.activeInHierarchy ? 1.0f : 0.0f);
             _animator.SetIKPositionWeight(AvatarIKGoal.RightHand, weight);
             _animator.SetIKRotationWeight(AvatarIKGoal.RightHand, weight);
             _animator.SetIKPosition(AvatarIKGoal.RightHand, _rightHandGrip.position);
             _animator.SetIKRotation(AvatarIKGoal.RightHand, _rightHandGrip.rotation);
             _animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, weight);
             _animator.SetIKPosition(AvatarIKGoal.LeftHand, _leftHandGrip.position);
+        }
+
+        private bool IsThrowing()
+        {
+            AnimatorStateInfo throwState = _animator.GetCurrentAnimatorStateInfo(ThrowLayerIndex);
+            return throwState.shortNameHash != s_emptyStateHash
+                || _animator.IsInTransition(ThrowLayerIndex);
         }
     }
 }
