@@ -5,6 +5,7 @@ public class PlayerMove : MonoBehaviour
 {
     private const float BaseGravity = -20f;
     private const int MaxJumpCount = 2;
+    private static readonly int s_moveMotionHash = Animator.StringToHash("MoveMotion");
 
     private int _jumpCount = 0;
     private float _yVelocity = 0f;
@@ -61,7 +62,6 @@ public class PlayerMove : MonoBehaviour
 
         // 2. 입력에 따른 방향을 구한다.
         Vector3 direction = new Vector3(h, 0, v).normalized;
-        _animator.SetFloat("MoveMotion", direction.magnitude);
         direction = transform.TransformDirection(direction);
 
         var isGrounded = _characterController.isGrounded;
@@ -176,6 +176,10 @@ public class PlayerMove : MonoBehaviour
             targetVelocity,
             actualRate * Time.deltaTime
         );
+
+        var referenceSpeed = _health.IsInjured ? _injuredMoveSpeed : _moveSpeed;
+        var moveMotion = Mathf.Clamp01(_currentHorizontalVelocity.magnitude / referenceSpeed);
+        _animator.SetFloat(s_moveMotionHash, moveMotion);
 
         // 11. 최종 속도 합성
         Vector3 finalVelocity = _currentHorizontalVelocity;

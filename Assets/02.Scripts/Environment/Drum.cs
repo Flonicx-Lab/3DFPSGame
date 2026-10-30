@@ -71,6 +71,11 @@ public class Drum : MonoBehaviour, IDamagable
         // 1. 드럼통들에게 데미지를 준다.
         foreach (Collider col in colliders)
         {
+            if (!col.TryGetComponent(out IDamagable damagable))
+            {
+                continue;
+            }
+
             DamageInfo damageInfo = new()
             {
                 Value = _explosionDamage,
@@ -78,7 +83,7 @@ public class Drum : MonoBehaviour, IDamagable
                 HitNormal = (transform.position - col.ClosestPoint(transform.position)).normalized
             };
 
-            col.GetComponent<IDamagable>().TakeDamage(damageInfo);
+            damagable.TakeDamage(damageInfo);
         }
     }
 }
