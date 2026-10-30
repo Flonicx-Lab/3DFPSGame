@@ -131,7 +131,8 @@ namespace FpsGame.Editor
             int rampInStart,
             int holdStart,
             int holdEnd,
-            int rampOutEnd)
+            int rampOutEnd,
+            bool keepEndRotationInReference = false)
         {
             ValidateLimbOffsetArguments(
                 source,
@@ -184,11 +185,18 @@ namespace FpsGame.Editor
                             holdStart,
                             holdEnd,
                             rampOutEnd);
+                        Quaternion endRotationInReference = Quaternion.Inverse(reference.rotation)
+                            * end.rotation;
                         Vector3 targetPosition = end.position
                             + reference.TransformVector(referenceOffset) * timeWeight;
                         if (timeWeight > 0f)
                         {
                             SolveTwoBoneIk(upper, lower, end, targetPosition);
+                            if (keepEndRotationInReference)
+                            {
+                                // 끝 뼈의 원본 방향을 기준 Transform에 상대적인 값으로 유지한다.
+                                end.rotation = reference.rotation * endRotationInReference;
+                            }
                         }
 
                         var positionError = Vector3.Distance(targetPosition, end.position);
