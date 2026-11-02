@@ -41,8 +41,6 @@ public class GunLaser : MonoBehaviour
     public void Show(Vector3 end)
     {
         _beamDistance = Vector3.Distance(_cameraTransform.position, end);
-        _line.SetPosition(0, transform.position);
-        _line.SetPosition(1, _cameraTransform.position + _cameraTransform.forward * _beamDistance);
         _line.enabled = true;
         _hideTimer = _showDuration;
     }
