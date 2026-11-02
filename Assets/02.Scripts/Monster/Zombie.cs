@@ -53,6 +53,10 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
     [SerializeField] private float _smashRadius = 0f; // 0보다 크면 공격할 때 이 반경 안을 모두 내려찍는다. (m)
     [SerializeField] private ParticleSystem _smashEffectPrefab; // 내려찍을 때 발밑에서 퍼지는 먼지
 
+    [Header("골드")]
+    [SerializeField] private Gold _goldPrefab; // 쓰러지면 떨어뜨리는 골드
+    [SerializeField] private int _goldCount = 3; // 떨어뜨리는 개수
+
     private GameObject _player;
     private Vector3 _startPosition;
     private readonly Dictionary<ZombieState, IZombieState> _states = new();
@@ -189,7 +193,6 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
                     Value = _attackDamage,
                     HitPoint = target.bounds.ClosestPoint(transform.position), // 대상에서 엘리트에 가장 가까운 점
                     HitNormal = (transform.position - target.transform.position).normalized, // 엘리트 쪽
-
                 };
                 damageable.TakeDamage(damage);
             }
@@ -252,8 +255,24 @@ public class Zombie : MonoBehaviour, IDamagable, IPoolable
 
     public void Die()
     {
+        DropGold();
         ChangeState(ZombieState.Die);
         OnDied?.Invoke(this);
+    }
+
+    // 좀비 위치(바닥에서 1m)에서 골드를 떨어뜨린다. 골드마다 다른 방향으로 튀어나간다.
+    private void DropGold()
+    {
+        if (_goldPrefab == null)
+        {
+            return;
+        }
+
+        Vector3 spawnPosition = transform.position + Vector3.up * 1f;
+        for (var i = 0; i < _goldCount; i++)
+        {
+            Instantiate(_goldPrefab, spawnPosition, UnityEngine.Random.rotation);
+        }
     }
 
     public bool IsPlayerDetected()

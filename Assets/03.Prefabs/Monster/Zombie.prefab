@@ -27,7 +27,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1054433658100316379}
@@ -427,6 +427,11 @@ MonoBehaviour:
   _jumpHeight: 1
   _bloodSprayPrefab: {fileID: 1000013355911406, guid: 2c352d0828f648e8bbb14a1cb8b58f16, type: 3}
   _bloodSprayReturnDelay: 1
+  _superArmor: 0
+  _smashRadius: 0
+  _smashEffectPrefab: {fileID: 0}
+  _goldPrefab: {fileID: 3384879777951219118, guid: c666211c764488842a7d98058bf3a26b, type: 3}
+  _goldCount: 3
 --- !u!114 &104682373795913814
 MonoBehaviour:
   m_ObjectHideFlags: 0
