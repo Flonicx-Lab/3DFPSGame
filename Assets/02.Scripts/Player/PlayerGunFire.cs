@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using FpsGame.Player;
-using FpsGame.Weapon;
 using Lean.Pool;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -17,9 +16,7 @@ public class PlayerGunFire : MonoBehaviour
     [SerializeField] private GameObject[] _muzzleFlashes;
     [SerializeField] private float _flashTime = 0.05f;
     [SerializeField] private ParticleSystem _hitEffectPrefab;
-    [SerializeField] private BulletTracer _tracerPrefab;
-    [SerializeField] private Transform _muzzle;
-    [SerializeField] private int _tracerInterval = 3;
+    [SerializeField] private GunLaser _laser;
     [SerializeField] private float _range = 100f;
     [SerializeField] private LayerMask _hitLayers; // 좀비 루트 캡슐 대신 뼈 히트박스에 맞도록 Zombie 레이어는 뺀다.
     [SerializeField] private float _damage = 10f;
@@ -42,14 +39,15 @@ public class PlayerGunFire : MonoBehaviour
     private Awaitable _reloadAwaitable;
     private Animator _animator;
     private PlayerRifleGrip _rifleGrip;
+    private PlayerAim _aim;
     private PlayerWeaponMode _weaponMode;
-    private int _shotCount;
 
     private void Awake()
     {
         _currentAmmo = _maxAmmo;
         _animator = GetComponentInChildren<Animator>();
         _rifleGrip = GetComponentInChildren<PlayerRifleGrip>();
+        _aim = GetComponentInChildren<PlayerAim>();
         _weaponMode = GetComponent<PlayerWeaponMode>();
     }
 
@@ -102,6 +100,7 @@ public class PlayerGunFire : MonoBehaviour
     {
         _audioSource.PlayOneShot(_shotClip);
         StartCoroutine(MuzzleFalsh_Routine());
+        _aim.Kick();
 
         Transform cameraTransform = Camera.main.transform;
         // 2. 레이(광선)을 생성하고 발사될 위치와 진행 방향 설정
@@ -112,14 +111,7 @@ public class PlayerGunFire : MonoBehaviour
 
         // 4. 레이를 발사하고, 만일 부딪힌 물체가 있다면 이펙트 표시
         var isHit = Physics.Raycast(ray, out hitInfo, _range, _hitLayers);
-        Vector3 end = isHit ? hitInfo.point : ray.GetPoint(_range);
-        if (_shotCount % _tracerInterval == 0)
-        {
-            BulletTracer tracer = LeanPool.Spawn(_tracerPrefab, _muzzle.position, Quaternion.identity);
-            tracer.Launch(end);
-        }
-
-        _shotCount++;
+        _laser.Show(isHit ? hitInfo.point : ray.GetPoint(_range));
         if (isHit)
         {
             // 5. 오브젝트 풀을 통해 피격 이펙트 생성 및 지연 반환
